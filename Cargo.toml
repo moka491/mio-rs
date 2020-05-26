@@ -1,0 +1,14 @@
+[package]
+name = "mio-rs"
+version = "0.1.0"
+authors = ["Moka"]
+edition = "2018"
+
+[dependencies]
+env_logger = "0.6"
+kankyo = "0.2"
+log = "0.4"
+
+[dependencies.serenity]
+version = "0.8"
+features = ["cache", "framework", "standard_framework", "rustls_backend"]
