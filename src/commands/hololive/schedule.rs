@@ -6,7 +6,7 @@ use serenity::{
 
 #[command]
 pub fn schedule(ctx: &mut Context, msg: &Message) -> CommandResult {
-    let _ = msg.reply(ctx, "Hello");
+    let _ = msg.channel_id.say(ctx, "だいじょうぶ！");
 
     Ok(())
 }

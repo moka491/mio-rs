@@ -58,7 +58,18 @@ fn main() {
     client.with_framework(
         StandardFramework::new()
             .configure(|c| c.owners(owners).prefix("~"))
-            .group(&commands::hololive::HOLOLIVE_GROUP),
+            .group(&commands::hololive::HOLOLIVE_GROUP)
+            .group(&commands::tldr::TLDR_GROUP)
+            .after(|ctx, msg, command_name, error| match error {
+                Ok(()) => println!("Processed command '{}'", command_name),
+                Err(why) => {
+                    println!("Command '{}' returned error {:?}", command_name, why);
+                    let _ = msg.channel_id.say(
+                        &ctx.http,
+                        format!("Command '{}' returned error {:?}", command_name, why),
+                    );
+                }
+            }),
     );
 
     if let Err(why) = client.start() {

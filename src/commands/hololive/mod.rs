@@ -1,9 +1,9 @@
 use serenity::framework::standard::macros::group;
 
-pub mod schedule;
-
+mod schedule;
 use self::schedule::SCHEDULE_COMMAND;
 
 #[group]
+#[prefixes("hololive", "hl")]
 #[commands(schedule)]
 struct Hololive;
