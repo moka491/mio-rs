@@ -1,4 +1,3 @@
-use serenity::builder::CreateEmbed;
 use serenity::{
     framework::standard::{macros::command, Args, CommandError, CommandResult},
     model::channel::Message,
@@ -7,12 +6,8 @@ use serenity::{
 
 use reqwest::{blocking::get, StatusCode};
 
-// lookup windows cd
-// lookup tar
-
 #[command]
-pub fn lookup(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult {
-    let mut platform = "linux";
+pub fn tldr(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult {
     let platform_arg;
 
     // If the platform was given as the first argument, try to parse it, otherwise go back to linux
@@ -32,34 +27,55 @@ pub fn lookup(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult
 
     let search_string = args.single::<String>()?;
 
-    let formatted_string = format!(
-        "https://raw.githubusercontent.com/tldr-pages/tldr/master/pages/{}/{}.md",
-        platform, search_string
-    );
+    let tldr_urls = [
+        format!(
+            "https://raw.githubusercontent.com/tldr-pages/tldr/master/pages/{}/{}.md",
+            platform, search_string
+        ),
+        format!(
+            "https://raw.githubusercontent.com/tldr-pages/tldr/master/pages/common/{}.md",
+            search_string
+        ),
+    ];
 
-    // Search for a page for the given platform and command
-    let resp = get(&formatted_string)?;
+    // Try to find the search string on any url
+    for url in tldr_urls.iter() {
+        let resp = get(url)?;
 
-    match resp.status() {
-        StatusCode::NOT_FOUND => (),
-        StatusCode::OK => {
-            let resp_body = &resp.text()?;
+        match resp.status() {
+            // If the file is not found on the current url, try the next one
+            StatusCode::NOT_FOUND => (),
+            // If it was found, parse it, send the embed and Ok() out
+            StatusCode::OK => {
+                let resp_body = &resp.text()?;
 
-            let (title, description) = match get_tldr_content_from_markdown(resp_body) {
-                Some(tuple) => tuple,
-                None => return Err(CommandError("Couldn't parse tldr markdown".to_string())),
-            };
-            let msg = msg.channel_id.send_message(&ctx.http, |m| {
-                m.embed(|e| {
-                    e.title(title);
-                    e.description(description);
-                    e
+                let (title, description) = match get_tldr_content_from_markdown(resp_body) {
+                    Some(tuple) => tuple,
+                    None => return Err(CommandError("Couldn't parse tldr markdown".to_string())),
+                };
+                let _ = msg.channel_id.send_message(&ctx.http, |m| {
+                    m.embed(|e| {
+                        e.title(title);
+                        e.description(description);
+                        e
+                    });
+                    m
                 });
-                m
-            });
+                return Ok(());
+            }
+            // On any other response, throw an error
+            s => return Err(CommandError(format!("Unexpected response status: {:?}", s))),
         }
-        s => return Err(CommandError(format!("Unexpected response status: {:?}", s))),
     }
+
+    // Send a message if nothing was found until now
+    let _ = msg.channel_id.send_message(&ctx.http, |m| {
+        m.content(format!(
+            "Could not find a tl:dr page for '{}'",
+            search_string
+        ));
+        m
+    });
 
     Ok(())
 }
