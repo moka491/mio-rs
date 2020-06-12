@@ -7,7 +7,7 @@ use serenity::{
 use reqwest::{blocking::get, StatusCode};
 
 #[command]
-pub fn tldr(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult {
+pub fn lookup(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult {
     let platform_arg;
 
     // If the platform was given as the first argument, try to parse it, otherwise go back to linux
@@ -53,6 +53,7 @@ pub fn tldr(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult {
                     Some(tuple) => tuple,
                     None => return Err(CommandError("Couldn't parse tldr markdown".to_string())),
                 };
+
                 let _ = msg.channel_id.send_message(&ctx.http, |m| {
                     m.embed(|e| {
                         e.title(title);
@@ -61,6 +62,7 @@ pub fn tldr(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult {
                     });
                     m
                 });
+
                 return Ok(());
             }
             // On any other response, throw an error
@@ -80,7 +82,7 @@ pub fn tldr(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult {
     Ok(())
 }
 
-fn get_tldr_content_from_markdown<'m>(tldr_body: &'m str) -> Option<(&'m str, String)> {
+fn get_tldr_content_from_markdown(tldr_body: &str) -> Option<(&str, String)> {
     let body_lines: Vec<&str> = tldr_body.lines().collect();
 
     match body_lines.as_slice() {

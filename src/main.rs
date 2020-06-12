@@ -61,12 +61,18 @@ fn main() {
             .group(&commands::hololive::HOLOLIVE_GROUP)
             .group(&commands::tldr::TLDR_GROUP)
             .after(|ctx, msg, command_name, error| match error {
-                Ok(()) => println!("Processed command '{}'", command_name),
+                Ok(()) => println!(
+                    "Command '{}' processed message: {}",
+                    command_name, msg.content
+                ),
                 Err(why) => {
-                    println!("Command '{}' returned error {:?}", command_name, why);
+                    println!(
+                        "Command '{}' returned error. Message: {}, Error: {:?}",
+                        command_name, msg.content, why
+                    );
                     let _ = msg.channel_id.say(
                         &ctx.http,
-                        format!("Command '{}' returned error {:?}", command_name, why),
+                        format!("An error occured while processing this command: {:?}", why),
                     );
                 }
             }),

@@ -1,8 +1,10 @@
 use serenity::framework::standard::macros::group;
 
 mod lookup;
-use self::lookup::TLDR_COMMAND;
+use self::lookup::LOOKUP_COMMAND;
 
 #[group]
-#[commands(tldr)]
+#[prefixes("tldr", "tl")]
+#[default_command(lookup)]
+#[commands(lookup)]
 struct Tldr;
