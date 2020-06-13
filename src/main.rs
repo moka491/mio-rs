@@ -1,11 +1,14 @@
 mod commands;
+mod core;
 
+use crate::core::consts::MAIN_COLOR;
 use log::{error, info};
 use serenity::{
     client::bridge::gateway::ShardManager,
     framework::StandardFramework,
     model::{event::ResumedEvent, gateway::Ready},
     prelude::*,
+    utils::Colour,
 };
 use std::{collections::HashSet, env, sync::Arc};
 
@@ -57,10 +60,11 @@ fn main() {
 
     client.with_framework(
         StandardFramework::new()
-            .configure(|c| c.owners(owners).prefix("~"))
+            .configure(|c| c.owners(owners).prefix("$"))
             .group(&commands::hololive::HOLOLIVE_GROUP)
             .group(&commands::tldr::TLDR_GROUP)
             .group(&commands::util::UTIL_GROUP)
+            .help(&commands::help::HELP)
             .after(|ctx, msg, command_name, error| match error {
                 Ok(()) => println!(
                     "Command '{}' processed message: {}",
@@ -73,6 +77,7 @@ fn main() {
                     );
                     let _ = msg.channel_id.send_message(&ctx.http, |m| {
                         m.embed(|e| {
+                            e.colour(Colour::new(MAIN_COLOR));
                             e.title("An error occured!");
                             e.description(format!("{}", error.0))
                         })

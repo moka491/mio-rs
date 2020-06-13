@@ -181,10 +181,14 @@ lazy_static! {
 }
 
 #[command]
+#[description("Converts a number with a given unit to another unit.")]
+#[example("25km/h mph")]
+#[example("5mi mm")]
+#[example("27°C °F")]
 pub fn convert(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult {
     if args.len() != 2 {
         return Err(CommandError(
-            "Invalid number of arguments. You need to pass <number><unit> and <desired unit>, e.g. ~convert 25km/s ft/s".to_string(),
+            "Invalid number of arguments. You need to pass <number><unit> and <desired unit>, e.g. $convert 25km/s ft/s".to_string(),
         ));
     }
 

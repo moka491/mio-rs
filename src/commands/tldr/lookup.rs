@@ -1,7 +1,9 @@
+use crate::core::consts::MAIN_COLOR;
 use serenity::{
     framework::standard::{macros::command, Args, CommandError, CommandResult},
     model::channel::Message,
     prelude::Context,
+    utils::Colour,
 };
 
 use reqwest::{blocking::get, StatusCode};
@@ -57,6 +59,7 @@ pub fn lookup(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult
 
                 let _ = msg.channel_id.send_message(&ctx.http, |m| {
                     m.embed(|e| {
+                        e.colour(Colour::new(MAIN_COLOR));
                         e.title(title);
                         e.description(description);
                         e
