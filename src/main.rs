@@ -74,7 +74,7 @@ fn main() {
                     let _ = msg.channel_id.send_message(&ctx.http, |m| {
                         m.embed(|e| {
                             e.title("An error occured!");
-                            e.description(format!("{:?}", error))
+                            e.description(format!("{}", error.0))
                         })
                     });
                 }

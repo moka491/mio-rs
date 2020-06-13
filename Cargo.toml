@@ -9,6 +9,7 @@ env_logger = "0.6"
 log = "0.4"
 kankyo = "0.2"
 chrono = "0.4.11"
+lazy_static = "1.4.0"
 
 [dependencies.serenity]
 version = "0.8"

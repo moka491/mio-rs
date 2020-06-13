@@ -634,6 +634,7 @@ dependencies = [
  "chrono",
  "env_logger",
  "kankyo",
+ "lazy_static",
  "log",
  "reqwest",
  "serenity",
