@@ -60,20 +60,23 @@ fn main() {
             .configure(|c| c.owners(owners).prefix("~"))
             .group(&commands::hololive::HOLOLIVE_GROUP)
             .group(&commands::tldr::TLDR_GROUP)
+            .group(&commands::util::UTIL_GROUP)
             .after(|ctx, msg, command_name, error| match error {
                 Ok(()) => println!(
                     "Command '{}' processed message: {}",
                     command_name, msg.content
                 ),
-                Err(why) => {
+                Err(error) => {
                     println!(
                         "Command '{}' returned error. Message: {}, Error: {:?}",
-                        command_name, msg.content, why
+                        command_name, msg.content, error
                     );
-                    let _ = msg.channel_id.say(
-                        &ctx.http,
-                        format!("An error occured while processing this command: {:?}", why),
-                    );
+                    let _ = msg.channel_id.send_message(&ctx.http, |m| {
+                        m.embed(|e| {
+                            e.title("An error occured!");
+                            e.description(format!("{:?}", error))
+                        })
+                    });
                 }
             }),
     );

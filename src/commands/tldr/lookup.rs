@@ -22,9 +22,10 @@ pub fn lookup(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult
                 "linux"
             }
         }
-        _ => return Err(CommandError("Test".to_string())),
+        _ => return Err(CommandError("Invalid number of arguments".to_string())),
     };
 
+    // Retrieve the command search string argument
     let search_string = args.single::<String>()?;
 
     let tldr_urls = [
@@ -86,7 +87,11 @@ fn get_tldr_content_from_markdown(tldr_body: &str) -> Option<(&str, String)> {
     let body_lines: Vec<&str> = tldr_body.lines().collect();
 
     match body_lines.as_slice() {
-        [first_line, rest @ ..] => Some((first_line, rest.join("\n"))),
+        [first_line, rest @ ..] => {
+            // Remove any hashtags and spaces at the start of the title line
+            let heading = first_line.trim_start_matches(|c| c == ' ' || c == '#');
+            Some((heading, rest.join("\n")))
+        }
         _ => None,
     }
 }
