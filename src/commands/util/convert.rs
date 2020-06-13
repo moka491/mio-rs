@@ -173,7 +173,7 @@ lazy_static! {
         ],
         // fahrenheit
         vec![
-            |n| (n - 32.0) * 1.8,   // to celcius,
+            |n| (n - 32.0) * 5.0 / 9.0,   // to celcius,
             |n| (n + 459.67) * 1.8, // to kelvin
             |n| n,                  // to fahrenheit
         ],
