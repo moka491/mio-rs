@@ -63,7 +63,7 @@ fn main() {
             .configure(|c| c.owners(owners).prefix("$"))
             .group(&commands::hololive::HOLOLIVE_GROUP)
             .group(&commands::tldr::TLDR_GROUP)
-            .group(&commands::util::UTIL_GROUP)
+            .group(&commands::misc::MISC_GROUP)
             .help(&commands::help::HELP)
             .after(|ctx, msg, command_name, error| match error {
                 Ok(()) => println!(
