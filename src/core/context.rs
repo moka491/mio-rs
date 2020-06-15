@@ -1,8 +1,8 @@
 use serenity::{client::bridge::gateway::ShardManager, prelude::*};
-use std::{sync::Arc, time::Instant};
+use std::sync::Arc;
 
 extern crate chrono;
-use chrono::{Date, DateTime, Utc};
+use chrono::{DateTime, Utc};
 
 pub struct ShardManagerContainer;
 impl TypeMapKey for ShardManagerContainer {

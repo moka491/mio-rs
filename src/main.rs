@@ -6,13 +6,12 @@ use crate::core::context::*;
 use chrono::Utc;
 use log::{error, info};
 use serenity::{
-    client::bridge::gateway::ShardManager,
     framework::StandardFramework,
     model::{event::ResumedEvent, gateway::Ready},
     prelude::*,
     utils::Colour,
 };
-use std::{collections::HashSet, env, sync::Arc, time::Instant};
+use std::{collections::HashSet, env, sync::Arc};
 
 struct Handler;
 impl EventHandler for Handler {
