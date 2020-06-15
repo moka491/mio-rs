@@ -10,6 +10,8 @@ log = "0.4"
 kankyo = "0.2"
 chrono = "0.4.11"
 lazy_static = "1.4.0"
+rustc_version_runtime = "0.1.*"
+sys-info = "0.7"
 
 [dependencies.serenity]
 version = "0.8"
