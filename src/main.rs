@@ -71,6 +71,7 @@ fn main() {
             .group(&commands::hololive::HOLOLIVE_GROUP)
             .group(&commands::tldr::TLDR_GROUP)
             .group(&commands::misc::MISC_GROUP)
+            .group(&commands::system::SYSTEM_GROUP)
             .help(&commands::help::HELP)
             .after(|ctx, msg, command_name, error| match error {
                 Ok(()) => println!(
