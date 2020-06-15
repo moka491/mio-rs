@@ -2,6 +2,8 @@ mod commands;
 mod core;
 
 use crate::core::consts::MAIN_COLOR;
+use crate::core::context::*;
+use chrono::Utc;
 use log::{error, info};
 use serenity::{
     client::bridge::gateway::ShardManager,
@@ -10,12 +12,7 @@ use serenity::{
     prelude::*,
     utils::Colour,
 };
-use std::{collections::HashSet, env, sync::Arc};
-
-struct ShardManagerContainer;
-impl TypeMapKey for ShardManagerContainer {
-    type Value = Arc<Mutex<ShardManager>>;
-}
+use std::{collections::HashSet, env, sync::Arc, time::Instant};
 
 struct Handler;
 impl EventHandler for Handler {
@@ -29,6 +26,11 @@ impl EventHandler for Handler {
             Some(Activity::listening("mio and !m")),
             OnlineStatus::Online,
         );
+
+        {
+            let mut data = ctx.data.write();
+            data.insert::<StartTimeContainer>(Utc::now());
+        }
     }
 
     fn resume(&self, _: Context, _: ResumedEvent) {
