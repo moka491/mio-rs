@@ -59,12 +59,10 @@ pub fn lookup(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult
 
                 let _ = msg.channel_id.send_message(&ctx.http, |m| {
                     m.embed(|e| {
-                        e.colour(Colour::new(MAIN_COLOR));
-                        e.title(title);
-                        e.description(description);
-                        e
-                    });
-                    m
+                        e.colour(Colour::new(MAIN_COLOR))
+                            .title(title)
+                            .description(description)
+                    })
                 });
 
                 return Ok(());
@@ -79,8 +77,7 @@ pub fn lookup(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult
         m.content(format!(
             "Could not find a tl:dr page for '{}'",
             search_string
-        ));
-        m
+        ))
     });
 
     Ok(())

@@ -19,8 +19,16 @@ impl TypeMapKey for ShardManagerContainer {
 
 struct Handler;
 impl EventHandler for Handler {
-    fn ready(&self, _: Context, ready: Ready) {
+    fn ready(&self, ctx: Context, ready: Ready) {
         info!("Connected as {}", ready.user.name);
+
+        use serenity::model::gateway::Activity;
+        use serenity::model::user::OnlineStatus;
+
+        ctx.set_presence(
+            Some(Activity::listening("mio and !m")),
+            OnlineStatus::Online,
+        );
     }
 
     fn resume(&self, _: Context, _: ResumedEvent) {
@@ -52,7 +60,6 @@ fn main() {
         Ok(info) => {
             let mut set = HashSet::new();
             set.insert(info.owner.id);
-
             set
         }
         Err(why) => panic!("Couldn't get application info: {:?}", why),
@@ -60,7 +67,7 @@ fn main() {
 
     client.with_framework(
         StandardFramework::new()
-            .configure(|c| c.owners(owners).prefix("$"))
+            .configure(|c| c.owners(owners).prefixes(vec!["!m ", "mio "]))
             .group(&commands::hololive::HOLOLIVE_GROUP)
             .group(&commands::tldr::TLDR_GROUP)
             .group(&commands::misc::MISC_GROUP)
@@ -77,9 +84,9 @@ fn main() {
                     );
                     let _ = msg.channel_id.send_message(&ctx.http, |m| {
                         m.embed(|e| {
-                            e.colour(Colour::new(MAIN_COLOR));
-                            e.title("An error occured!");
-                            e.description(format!("{}", error.0))
+                            e.colour(Colour::new(MAIN_COLOR))
+                                .title("An error occured!")
+                                .description(format!("{}", error.0))
                         })
                     });
                 }

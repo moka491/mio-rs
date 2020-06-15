@@ -239,8 +239,7 @@ pub fn convert(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResul
             input = source_arg,
             dest_unit = dest_unit_arg,
             result = result
-        ));
-        m
+        ))
     });
 
     Ok(())
