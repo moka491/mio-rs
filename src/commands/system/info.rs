@@ -39,7 +39,8 @@ pub fn info(ctx: &mut Context, msg: &Message, _: Args) -> CommandResult {
         .iter()
         .fold(0, |freq, p| freq + p.get_frequency() / cpu_count as u64);
 
-    let bot_process = sys.get_process(std::process::id() as usize).unwrap();
+    let bot_pid = sysinfo::get_current_pid().unwrap();
+    let bot_process = sys.get_process(bot_pid).unwrap();
 
     let _ = msg.channel_id.send_message(&ctx.http, |m| {
         m.embed(|e| {
