@@ -23,7 +23,7 @@ impl EventHandler for Handler {
         use serenity::model::user::OnlineStatus;
 
         ctx.set_presence(
-            Some(Activity::listening("mio and !m")),
+            Some(Activity::listening("~help and mio help")),
             OnlineStatus::Online,
         );
     }
@@ -66,7 +66,7 @@ fn main() {
 
     client.with_framework(
         StandardFramework::new()
-            .configure(|c| c.owners(owners).prefixes(vec!["!m ", "mio "]))
+            .configure(|c| c.owners(owners).prefixes(vec!["~help", "mio help"]))
             .group(&commands::hololive::HOLOLIVE_GROUP)
             .group(&commands::tldr::TLDR_GROUP)
             .group(&commands::misc::MISC_GROUP)
