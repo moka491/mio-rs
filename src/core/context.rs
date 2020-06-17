@@ -3,6 +3,7 @@ use std::sync::Arc;
 
 extern crate chrono;
 use chrono::{DateTime, Utc};
+use sysinfo::System;
 
 pub struct ShardManagerContainer;
 impl TypeMapKey for ShardManagerContainer {
@@ -12,4 +13,9 @@ impl TypeMapKey for ShardManagerContainer {
 pub struct StartTimeContainer;
 impl TypeMapKey for StartTimeContainer {
     type Value = DateTime<Utc>;
+}
+
+pub struct SysInfoContainer;
+impl TypeMapKey for SysInfoContainer {
+    type Value = System;
 }

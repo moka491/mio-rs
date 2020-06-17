@@ -28,10 +28,10 @@ pub struct Pagination {
 impl Pagination {
     pub fn change_page(&mut self, ctx: Context, which_page: PageChange) {
         let new_page_num = match which_page {
-            PageChangeRequest::First => 1,
-            PageChangeRequest::Previous => self.current_page - 1,
-            PageChangeRequest::Next => self.current_page + 1,
-            PageChangeRequest::Last => self.pages.len(),
+            PageChange::First => 1,
+            PageChange::Previous => self.current_page - 1,
+            PageChange::Next => self.current_page + 1,
+            PageChange::Last => self.pages.len(),
         };
 
         let next_page_data = match self.pages.get(new_page_num - 1) {
@@ -39,9 +39,9 @@ impl Pagination {
             None => return,
         };
 
-        let _ = self
-            .message
-            .edit(ctx.http, |m| m.embed(|mut e| e.0 = next_embed.0.clone()));
+        // let _ = self
+        //     .message
+        //     .edit(ctx.http, |m| m.embed(|mut e| e.0 = next_embed.0.clone()));
 
         self.current_page = new_page_num;
     }

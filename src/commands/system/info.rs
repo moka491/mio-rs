@@ -1,9 +1,8 @@
 extern crate rustc_version_runtime;
-extern crate sys_info;
 use rustc_version_runtime::version;
-use sys_info::*;
+use sysinfo::{ProcessExt, ProcessorExt, SystemExt};
 
-use crate::core::context::StartTimeContainer;
+use crate::core::context::{StartTimeContainer, SysInfoContainer};
 use chrono::Utc;
 use serenity::{
     framework::standard::{macros::command, Args, CommandResult},
@@ -18,23 +17,29 @@ pub fn info(ctx: &mut Context, msg: &Message, _: Args) -> CommandResult {
     let bot_user = &ctx.cache.read().user;
     let bot_avatar = bot_user.avatar_url().unwrap_or(String::from(""));
 
+    // Refresh system info
+    {
+        let mut data = ctx.data.write();
+        let sys = data.get_mut::<SysInfoContainer>().unwrap();
+        sys.refresh_all();
+    }
+
+    // Uptime calculation
     let data = ctx.data.read();
     let start_time = data.get::<StartTimeContainer>().unwrap();
-    let uptime = Utc::now().signed_duration_since(*start_time).num_seconds();
+    let bot_uptime = Utc::now().signed_duration_since(*start_time).num_seconds();
 
-    let week_r = uptime % 604800;
-    let day_r = week_r % 86400;
-    let hour_r = day_r % 3600;
-    let minute_r = hour_r % 60;
+    // System info
+    let sys = data.get::<SysInfoContainer>().unwrap();
+    let cpu = sys.get_global_processor_info();
+    let cpu_name = cpu.get_name().trim_end_matches("Total CPU").trim_end();
+    let cpu_count = sys.get_processors().len();
+    let avg_cpu_frequency = sys
+        .get_processors()
+        .iter()
+        .fold(0, |freq, p| freq + p.get_frequency() / cpu_count as u64);
 
-    let up_weeks = (uptime - week_r) / 604800;
-    let up_days = (week_r - day_r) / 86400;
-    let up_hours = (day_r - hour_r) / 3600;
-    let up_minutes = (hour_r - minute_r) / 60;
-    let up_seconds = minute_r % 60;
-
-    let load = loadavg().unwrap();
-    let mem = mem_info().unwrap();
+    let bot_process = sys.get_process(std::process::id() as usize).unwrap();
 
     let _ = msg.channel_id.send_message(&ctx.http, |m| {
         m.embed(|e| {
@@ -49,12 +54,15 @@ pub fn info(ctx: &mut Context, msg: &Message, _: Args) -> CommandResult {
                         format!("
                             **Version**: v{}\n\
                             **Compiled with**: rustc v{}\n\
-                            **Owner**: {}#{:04} 
-                            **Uptime**: {}w {}d {}h {}m {}s",
+                            **Owner**: {}#{:04}\n\
+                            **Mem usage**: {:.2} MB\n\
+                            **Uptime**: {}",
                             BOT_VERSION,
                             version(),
                             app_info.owner.name, app_info.owner.discriminator,
-                            up_weeks, up_days, up_hours, up_minutes, up_seconds
+                            bot_process.memory() / 1024,
+                            get_formatted_uptime(bot_uptime as u64),
+
                         ), true),
 
                     ("Dependencies", 
@@ -64,18 +72,16 @@ pub fn info(ctx: &mut Context, msg: &Message, _: Args) -> CommandResult {
 
                     ("System Info", 
                         format!(
-                            "**OS**: {} {}\n\
-                            **CPUs**: {}x {} MHz\n\
-                            **Load**: {:.2}% {:.2}% {:.2}%\n\
-                            **Processes**: {}\n\
-                            **Memory**: {:.2} / {:.2} MB used\n\
-                            **Swap**: {:.2} / {:.2} MB used", 
-                            os_type().unwrap(), os_release().unwrap(),
-                            cpu_num().unwrap(), cpu_speed().unwrap(),
-                            load.one*100.0, load.five*100.0, load.fifteen*100.0,
-                            proc_total().unwrap(),
-                            (mem.total - mem.free) / 1024, mem.total / 1024,
-                            (mem.swap_total - mem.swap_free) / 1024, mem.swap_total / 1024,
+                            "**CPU**: {} {}, {}x {:.2} MHz\n\
+                            **CPU usage**: {:.2}%\n\
+                            **RAM usage**: {} / {} MB\n\
+                            **Swap usage**: {} / {} MB\n\
+                            **System uptime**: {}",
+                            cpu.get_brand(), cpu_name, cpu_count, avg_cpu_frequency,
+                            cpu.get_cpu_usage(),
+                            sys.get_used_memory() / 1024, sys.get_total_memory() / 1024,
+                            sys.get_used_swap() / 1024, sys.get_total_swap() / 1024,
+                            get_formatted_uptime(sys.get_uptime())
                         ), false),
                 ])
                 .footer(|f| {
@@ -85,4 +91,22 @@ pub fn info(ctx: &mut Context, msg: &Message, _: Args) -> CommandResult {
     });
 
     Ok(())
+}
+
+fn get_formatted_uptime(total_seconds: u64) -> String {
+    let week_r = total_seconds % 604800;
+    let day_r = week_r % 86400;
+    let hour_r = day_r % 3600;
+    let minute_r = hour_r % 60;
+
+    let up_weeks = (total_seconds - week_r) / 604800;
+    let up_days = (week_r - day_r) / 86400;
+    let up_hours = (day_r - hour_r) / 3600;
+    let up_minutes = (hour_r - minute_r) / 60;
+    let up_seconds = minute_r % 60;
+
+    format!(
+        "{}w {}d {}h {}m {}s",
+        up_weeks, up_days, up_hours, up_minutes, up_seconds
+    )
 }

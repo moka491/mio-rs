@@ -12,6 +12,7 @@ use serenity::{
     utils::Colour,
 };
 use std::{collections::HashSet, env, sync::Arc};
+use sysinfo::{System, SystemExt};
 
 struct Handler;
 impl EventHandler for Handler {
@@ -25,11 +26,6 @@ impl EventHandler for Handler {
             Some(Activity::listening("mio and !m")),
             OnlineStatus::Online,
         );
-
-        {
-            let mut data = ctx.data.write();
-            data.insert::<StartTimeContainer>(Utc::now());
-        }
     }
 
     fn resume(&self, _: Context, _: ResumedEvent) {
@@ -55,6 +51,8 @@ fn main() {
     {
         let mut data = client.data.write();
         data.insert::<ShardManagerContainer>(Arc::clone(&client.shard_manager));
+        data.insert::<StartTimeContainer>(Utc::now());
+        data.insert::<SysInfoContainer>(System::new_all());
     }
 
     let owners = match client.cache_and_http.http.get_current_application_info() {
