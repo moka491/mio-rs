@@ -66,7 +66,7 @@ fn main() {
 
     client.with_framework(
         StandardFramework::new()
-            .configure(|c| c.owners(owners).prefixes(vec!["~help", "mio help"]))
+            .configure(|c| c.owners(owners).prefixes(vec!["~", "mio "]))
             .group(&commands::hololive::HOLOLIVE_GROUP)
             .group(&commands::tldr::TLDR_GROUP)
             .group(&commands::misc::MISC_GROUP)
