@@ -707,6 +707,9 @@ dependencies = [
  "log",
  "reqwest",
  "rustc_version_runtime",
+ "serde",
+ "serde_derive",
+ "serde_json",
  "serenity",
  "sysinfo",
 ]
