@@ -1,4 +1,4 @@
-use chrono::{DateTime, FixedOffset, Local, NaiveDateTime, Utc};
+use chrono::{DateTime, FixedOffset, NaiveDateTime, Utc};
 use serde::Deserialize;
 use serenity::{
     framework::standard::{macros::command, Args, CommandError, CommandResult},
@@ -6,6 +6,8 @@ use serenity::{
     prelude::Context,
 };
 use std::env;
+
+// static MAP_ZOOM: i32 = 5;
 
 #[command]
 #[description("Retrieves the weather forecast at the given location")]
@@ -15,7 +17,7 @@ use std::env;
 pub fn weather(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult {
     let token = match env::var("OPEN_WEATHER_MAP_TOKEN") {
         Ok(token) => token,
-        Err(e) => {
+        Err(_) => {
             return Err(CommandError(
                 "Couldn't load api key from config".to_string(),
             ))
@@ -49,8 +51,9 @@ pub fn weather(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResul
             e.title(format!("Weather in {}", search_arg))
                 .thumbnail(get_weather_image_url(&weather.current.weather[0].icon))
                 .description(format!(
-                    "**{}** \n\
-                    Temp: **{}**°C (Feels like **{}**°C)",
+                    "{} **{}** \n\
+                    **Temp**: {:.0}°C (Feels like {:.0}°C)",
+                    get_weather_emoji(&weather.current.weather[0].icon),
                     uppercase_first(&weather.current.weather[0].description),
                     &weather.current.temp,
                     &weather.current.feels_like
@@ -88,20 +91,60 @@ pub fn weather(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResul
                             format_timestamp(
                                 weather.current.sunrise,
                                 weather.timezone_offset,
-                                false
+                                "%H:%M"
                             ),
                             format_timestamp(
                                 weather.current.sunset,
                                 weather.timezone_offset,
-                                false
+                                "%H:%M"
                             ),
-                            format_timestamp(weather.current.dt, weather.timezone_offset, true),
+                            format_timestamp(
+                                weather.current.dt,
+                                weather.timezone_offset,
+                                "%H:%M, %e %b %Y"
+                            ),
                         ),
                         false,
                     ),
                 ])
         })
     });
+
+    let _ = msg.channel_id.send_message(&ctx.http, |m| {
+        m.embed(|e| {
+            e.title(format!("Forecast for {}", search_arg));
+
+            for day_weather in &weather.daily {
+                e.field(
+                    format!(
+                        "{}",
+                        format_timestamp(day_weather.dt, weather.timezone_offset, "%e %b %Y")
+                    ),
+                    format!(
+                        "{} **{}** \n\
+                        **Temp**: {:.0}°C\n\
+                        **Humidity**: {}%",
+                        get_weather_emoji(&day_weather.weather[0].icon),
+                        uppercase_first(&day_weather.weather[0].description),
+                        &day_weather.temp.day,
+                        &day_weather.humidity
+                    ),
+                    true,
+                );
+            }
+            e
+        })
+    });
+
+    // let _ = msg.channel_id.send_message(&ctx.http, |m| {
+    //     m.embed(|e| {
+    //         e.image(get_weather_map_url(
+    //             "clouds_new",
+    //             get_map_coords_from_lat_lon(location.coord.lat, location.coord.lon),
+    //             &token,
+    //         ))
+    //     })
+    // });
 
     Ok(())
 }
@@ -110,29 +153,65 @@ fn get_weather_image_url(code: &String) -> String {
     format!("http://openweathermap.org/img/wn/{}@2x.png", code)
 }
 
+// fn get_weather_map_url(layer: &str, coords: (i32, i32), app_id: &str) -> String {
+//     format!(
+//         "https://tile.openweathermap.org/map/{layer}/{z}/{x}/{y}.png?appid={api_key}",
+//         layer = layer,
+//         z = MAP_ZOOM,
+//         x = coords.0,
+//         y = coords.1,
+//         api_key = app_id
+//     )
+// }
+
+fn get_weather_emoji(code: &String) -> String {
+    match code.as_str() {
+        "01d" => "☀️",
+        "01n" => "🌕",
+        "02d" | "02n" => "⛅",
+        "03d" | "03n" => "☁️",
+        "04d" | "04n" => "☁️",
+        "09d" | "09n" => "🌧️",
+        "10d" | "10n" => "🌧️",
+        "11d" | "11n" => "🌩️",
+        "13d" | "13n" => "❄️",
+        "50d" | "50n" => "🌫️",
+        _ => "☀️",
+    }
+    .to_string()
+}
+
+// fn get_map_coords_from_lat_lon(lat: f64, lon: f64) -> (i32, i32) {
+//     let lat_rad = lat.to_radians();
+
+//     let n = 2.0_f64.powi(MAP_ZOOM);
+//     let x = n * ((lon + 180.0) / 360.0);
+//     let y = n * (1.0 - ((lat_rad.tan() + (1.0 / lat_rad.cos())).log10() / PI)) / 2.0;
+
+//     (x as i32, y as i32)
+// }
+
 fn uppercase_first(s: &str) -> String {
     format!("{}{}", (&s[..1].to_string()).to_uppercase(), &s[1..])
 }
 
-fn format_timestamp(timestamp: i64, offset: i32, show_date: bool) -> String {
+// "%H:%M, %e %b %Y"
+fn format_timestamp(timestamp: i64, offset: i32, format: &str) -> String {
     let date_time = DateTime::<Utc>::from_utc(NaiveDateTime::from_timestamp(timestamp, 0), Utc);
     let local_time = date_time.with_timezone(&FixedOffset::east(offset));
 
-    if show_date {
-        local_time.format("%H:%M, %e %b %Y").to_string()
-    } else {
-        local_time.format("%H:%M").to_string()
-    }
+    local_time.format(format).to_string()
 }
 
 fn format_direction(degrees: i32) -> String {
     match degrees {
-        x if x <= 45 => "North".to_string(),
-        x if x <= 135 => "East".to_string(),
-        x if x <= 225 => "South".to_string(),
-        x if x <= 315 => "West".to_string(),
-        _ => "".to_string(),
+        x if x <= 45 || x > 315 => "North",
+        x if x <= 135 => "East",
+        x if x <= 225 => "South",
+        x if x <= 315 => "West",
+        _ => "",
     }
+    .to_string()
 }
 
 #[derive(Deserialize, Debug)]
@@ -170,6 +249,7 @@ struct CurrentWeather {
 }
 #[derive(Deserialize, Debug)]
 struct DailyWeather {
+    dt: i64,
     temp: Temp,
     feels_like: FeelsLike,
     pressure: i32,
