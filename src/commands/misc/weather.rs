@@ -242,7 +242,7 @@ struct CurrentWeather {
     pressure: i32,
     humidity: i32,
     clouds: i32,
-    visibility: i32,
+    visibility: Option<i32>,
     wind_speed: f64,
     wind_deg: i32,
     weather: Vec<Weather>,
