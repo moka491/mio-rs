@@ -1,10 +1,9 @@
+use serde_json::Value;
 use serenity::{
     framework::standard::{macros::command, Args, CommandError, CommandResult},
     model::channel::Message,
     prelude::Context,
 };
-
-const LANGUAGES: &[&str] = &["EN", "DE", "EO", "FR", "IT", "JA", "KO", "RU", "ES"];
 
 #[command]
 #[description(
@@ -30,7 +29,7 @@ pub fn translate(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandRes
 
     // Try to grab a second language parameter. On success, use that as the target_lang and the
     // initial first parameter as source language (i.e. switch from <target> <text> to <source> <target> <text>)
-    let source_lang = match validate_unit(&second_arg) {
+    let mut source_lang = match validate_unit(&second_arg) {
         Some(lang) => {
             // When the second argument is a language,
             // swap first and second arguments
@@ -41,7 +40,7 @@ pub fn translate(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandRes
         None => {
             // Else write this argument back to args, as it's part of the translation string!
             args.rewind();
-            "auto".to_string()
+            "auto"
         }
     };
 
@@ -67,41 +66,48 @@ pub fn translate(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandRes
         .send()?
         .text()?;
 
-    // Grab translated text from response by grabbing the text between the 1st and 2nd quotation marks
-    let quote_indices: Vec<(usize, &str)> = response.match_indices("\"").collect();
-    let translation: &str = match quote_indices.len() {
-        n if n > 1 => {
-            let start = quote_indices[0].0 + 1;
-            let end = quote_indices[1].0;
-            &response[start..end]
-        }
-        _ => {
-            return Err(CommandError(
-                "There was an error parsing the response!".to_string(),
-            ))
-        }
-    };
+    // Get loosely typed json format
+    let json: Value = serde_json::from_str(&response)?;
+
+    // Join translated sentences into one output string
+    let data_array = json[0].as_array().unwrap();
+    let translated_sentences = data_array
+        .iter()
+        .fold(String::default(), |translation, data| {
+            let transl_sentence = data[0].as_str().unwrap();
+            translation + transl_sentence
+        });
+
+    // Get recognized source language from response
+    source_lang = json[2].as_str().unwrap();
 
     // Send message with translation
     let _ = msg.channel_id.send_message(&ctx.http, |m| {
         m.embed(|e| {
             e.title(format!(
                 "Translation from {} -> {}",
-                source_lang, target_lang
+                source_lang.to_ascii_uppercase(),
+                target_lang.to_ascii_uppercase()
             ))
-            .description(translation)
+            .description(translated_sentences)
         })
     });
 
     Ok(())
 }
 
-fn validate_unit(unit_arg: &String) -> Option<String> {
-    let unit_uppercase = unit_arg.to_ascii_uppercase();
+fn validate_unit(unit_arg: &String) -> Option<&str> {
+    let unit_lowercase = unit_arg.to_ascii_lowercase();
 
-    if LANGUAGES.contains(&unit_uppercase.as_str()) {
-        Some(unit_uppercase)
-    } else {
-        None
+    match unit_lowercase.as_str() {
+        "ja" | "jp" | "japanese" => Some("ja"),
+        "fr" | "french" | "baguette" => Some("fr"),
+        "ko" | "korean" | "kpop" => Some("ko"),
+        "en" | "english" => Some("en"),
+        "de" | "german" => Some("de"),
+        "it" | "italian" => Some("it"),
+        "es" | "spanish" => Some("es"),
+        "ru" | "russian" => Some("ru"),
+        _ => None,
     }
 }
