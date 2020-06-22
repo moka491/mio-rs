@@ -4,7 +4,7 @@ mod lookup;
 use self::lookup::LOOKUP_COMMAND;
 
 #[group]
-#[prefixes("tldr", "tl")]
+#[prefixes("tldr")]
 #[default_command(lookup)]
 #[commands(lookup)]
 struct Tldr;

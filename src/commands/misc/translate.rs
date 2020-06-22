@@ -14,8 +14,8 @@ use serenity::{
 #[example("en こんにちは！")]
 #[example("de en Guten Abend!")]
 pub fn translate(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult {
-    let first_arg = args.single::<String>().unwrap();
-    let second_arg = args.single::<String>().unwrap();
+    let first_arg = args.single::<String>()?;
+    let second_arg = args.single::<String>()?;
 
     // Get the target lang (or source lang if second language is given)
     let mut target_lang = match validate_unit(&first_arg) {
