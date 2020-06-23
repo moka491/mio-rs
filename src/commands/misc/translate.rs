@@ -1,3 +1,4 @@
+use isolang::Language;
 use serde_json::Value;
 use serenity::{
     framework::standard::{macros::command, Args, CommandError, CommandResult},
@@ -22,7 +23,7 @@ pub fn translate(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandRes
         Some(lang) => lang,
         None => {
             return Err(CommandError(
-                "The first argument must be a valid target language code!".to_string(),
+                "The first argument must be a valid two letter language code!".to_string(),
             ))
         }
     };
@@ -97,17 +98,9 @@ pub fn translate(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandRes
 }
 
 fn validate_unit(unit_arg: &String) -> Option<&str> {
-    let unit_lowercase = unit_arg.to_ascii_lowercase();
-
-    match unit_lowercase.as_str() {
-        "ja" | "jp" | "japanese" => Some("ja"),
-        "fr" | "french" | "baguette" => Some("fr"),
-        "ko" | "korean" | "kpop" => Some("ko"),
-        "en" | "english" => Some("en"),
-        "de" | "german" => Some("de"),
-        "it" | "italian" => Some("it"),
-        "es" | "spanish" => Some("es"),
-        "ru" | "russian" => Some("ru"),
+    // If the given unit code is a valid ISO 639-1 lang code, return it, none otherwise
+    match Language::from_639_1(unit_arg.as_str()) {
+        Some(_) => Some(unit_arg),
         _ => None,
     }
 }
