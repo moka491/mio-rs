@@ -21,10 +21,15 @@ pub fn fetch(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult 
     let id_arg = args.single::<u64>().unwrap_or_default();
 
     while !end_reached {
+        // Show typing status
+        let _ = msg.channel_id.broadcast_typing(&ctx.http);
+
+        // Fetch REQUESTS_PER_ITER messages to process
         let _messages: Vec<Message> = msg.channel_id.messages(&ctx.http, |retriever| {
             retriever.before(last_message_id).limit(REQUESTS_PER_ITER)
         })?;
 
+        // Count up how many messages have been requested so far
         message_counter += _messages.len() as u32;
         last_message_id = _messages.last().unwrap().id;
 
@@ -34,13 +39,16 @@ pub fn fetch(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult 
             end_reached = true;
         }
 
+        // Go through all fetched messages in this iteration
         for message in _messages {
+            // Gather all image attachments and add their urls to the list
             message
                 .attachments
                 .iter()
                 .filter(|a| a.width.is_some())
                 .for_each(|a| link_list.push(a.url.clone()));
 
+            // Gather all embedded images and add their urls to the list
             message
                 .embeds
                 .iter()
@@ -61,7 +69,7 @@ pub fn fetch(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult 
 
         let attachment: AttachmentType = AttachmentType::Bytes {
             data: Cow::from(file_bytes),
-            filename: "filename.txt".to_string(),
+            filename: "found_images.txt".to_string(),
         };
 
         let _ = msg
