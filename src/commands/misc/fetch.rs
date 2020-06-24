@@ -6,7 +6,7 @@ use serenity::{
 };
 use std::borrow::Cow;
 
-const MAX_MESSAGE_COUNT: u32 = 5000;
+const MAX_MESSAGE_COUNT: u64 = 5000;
 const REQUESTS_PER_ITER: u64 = 100;
 
 #[command]
@@ -15,7 +15,7 @@ pub fn fetch(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult 
     let mut link_list: Vec<String> = vec![];
 
     let mut last_message_id: MessageId = msg.id;
-    let mut message_counter: u32 = 0;
+    let mut message_counter: u64 = 0;
     let mut end_reached = false;
 
     let id_arg = args.single::<u64>().unwrap_or_default();
@@ -30,12 +30,12 @@ pub fn fetch(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult 
         })?;
 
         // Count up how many messages have been requested so far
-        message_counter += _messages.len() as u32;
+        message_counter += _messages.len() as u64;
         last_message_id = _messages.last().unwrap().id;
 
         // If the retrieved messages are less than what expected (usually means we reached the beginning of the history)
         // or we reached a max amount of requests to make, stop after this iteration
-        if _messages.len() < REQUESTS_PER_ITER as usize || message_counter > MAX_MESSAGE_COUNT {
+        if _messages.len() < REQUESTS_PER_ITER as usize || message_counter >= MAX_MESSAGE_COUNT {
             end_reached = true;
         }
 
@@ -67,11 +67,27 @@ pub fn fetch(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult 
         let file_content = link_list.join("\n");
         let file_bytes = file_content.as_bytes();
 
+        // Create attachment text file
         let attachment: AttachmentType = AttachmentType::Bytes {
             data: Cow::from(file_bytes),
             filename: "found_images.txt".to_string(),
         };
 
+        // Send result info message
+        let _ = msg.channel_id.send_message(&ctx.http, |m| {
+            m.embed(|e| {
+                e.title("Image fetching results")
+                .description(format!(
+                    "Found **{}** images in **{}** messages! \n\
+                    The last message processed was [this one](https://discord.com/channels/{}/{}/{}/). \n\
+                    \n\
+                    You can download the attached txt file and \n\
+                    import it into a download manager of your choice."
+                , link_list.len(), message_counter, msg.guild_id.unwrap(), msg.channel_id.0, last_message_id.0 ))
+            })
+        });
+
+        // Send actual attachment
         let _ = msg
             .channel_id
             .send_message(&ctx.http, |m| m.add_file(attachment));
