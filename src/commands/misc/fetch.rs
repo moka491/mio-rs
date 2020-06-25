@@ -8,11 +8,15 @@ use serenity::{
 use std::borrow::Cow;
 
 const REQUESTS_PER_ITER: u64 = 100;
-const MESSAGE_RELATIVE_AGE_THRESH: i64 = 3600 * 3;
+const MESSAGE_RELATIVE_AGE_THRESH: i64 = 3600 * 18;
 const MESSAGE_NO_IMAGES_FOUND_THRESH: u64 = 50;
 
 #[command]
-#[description("Generate a list of all the images posted recently")]
+#[description("Generate a list of all the images recently posted. It will try to intelligently guess where the image posting stopped, but you can also define a clear start and/or end point")]
+#[usage("<optional starting Message ID> <optional ending message ID>")]
+#[example("725681148134424596")]
+#[example("725681148134424596 725681148134424582")]
+
 pub fn fetch(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult {
     let mut link_list: Vec<String> = vec![];
 
@@ -31,7 +35,9 @@ pub fn fetch(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult 
 
     let mut message_processed_counter: u64 = 0;
     let mut message_nothing_found_counter: u64 = 0;
+
     let mut end_reached = false;
+    let end_point_defined = to_msg_id_arg > 0;
 
     while !end_reached {
         // Show typing status
@@ -57,17 +63,24 @@ pub fn fetch(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult 
             current_message_timestamp = message.timestamp.timestamp();
 
             // Checks before working on current message:
-            // If the message is significantly older compared to the last message (age threshold)
-            // or the the last messages didn't have any images (no images found threshold)
-            // then stop searching here
-            if last_message_timestamp - current_message_timestamp >= MESSAGE_RELATIVE_AGE_THRESH {
-                debug!("Stopped due to the current message being far older than tolerable");
+            // If no clear end point was given as an argument,
+            // Stop searching based on if the current message is significantly older than the last one (relative age threshold)
+            if !end_point_defined
+                && last_message_timestamp - current_message_timestamp >= MESSAGE_RELATIVE_AGE_THRESH
+            {
+                debug!(
+                    "Stopped due to the current message being {} seconds older than the last one",
+                    last_message_timestamp - current_message_timestamp
+                );
 
                 end_reached = true;
                 break;
             }
 
-            if message_nothing_found_counter >= MESSAGE_NO_IMAGES_FOUND_THRESH {
+            // If no clear end point was given as an argument,
+            // Stop searching based on if any of the last messages even had images (no images found threshold)
+            if !end_point_defined && message_nothing_found_counter >= MESSAGE_NO_IMAGES_FOUND_THRESH
+            {
                 debug!(
                     "Stopped since there's been no images for the last {} messages now",
                     message_nothing_found_counter
@@ -102,7 +115,7 @@ pub fn fetch(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult 
             } else {
                 message_nothing_found_counter += 1;
 
-                debug!("No images found");
+                debug!("No images found in this message");
             }
 
             // Checks after working on the current message
