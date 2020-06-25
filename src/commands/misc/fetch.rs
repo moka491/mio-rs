@@ -1,3 +1,4 @@
+use log::debug;
 use serenity::{
     framework::standard::{macros::command, Args, CommandResult},
     http::AttachmentType,
@@ -6,19 +7,31 @@ use serenity::{
 };
 use std::borrow::Cow;
 
-const MAX_MESSAGE_COUNT: u64 = 5000;
 const REQUESTS_PER_ITER: u64 = 100;
+const MESSAGE_RELATIVE_AGE_THRESH: i64 = 3600 * 3;
+const MESSAGE_NO_IMAGES_FOUND_THRESH: u64 = 50;
 
 #[command]
 #[description("Generate a list of all the images posted recently")]
 pub fn fetch(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult {
     let mut link_list: Vec<String> = vec![];
 
-    let mut last_message_id: MessageId = msg.id;
-    let mut message_counter: u64 = 0;
-    let mut end_reached = false;
+    // Get optional start and end parameters ("to" message older than "from" message)
+    // If the to id is not given, leave it at 0 (thus it won't match an end)
+    // If the from id is not given, start at this command's message
+    let to_msg_id_arg = args.single::<u64>().unwrap_or_default();
+    let from_msg_id_arg = args.single::<u64>().unwrap_or(msg.id.0);
 
-    let id_arg = args.single::<u64>().unwrap_or_default();
+    // Search starts either at current bot message or at the given start id
+    let mut last_message_id: MessageId = MessageId(from_msg_id_arg);
+
+    // Store last processed message timestamp
+    let mut current_message_timestamp: i64;
+    let mut last_message_timestamp: i64 = 0;
+
+    let mut message_processed_counter: u64 = 0;
+    let mut message_nothing_found_counter: u64 = 0;
+    let mut end_reached = false;
 
     while !end_reached {
         // Show typing status
@@ -29,40 +42,84 @@ pub fn fetch(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult 
             retriever.before(last_message_id).limit(REQUESTS_PER_ITER)
         })?;
 
-        // Count up how many messages have been requested so far
-        message_counter += _messages.len() as u64;
-        last_message_id = _messages.last().unwrap().id;
+        debug!("Requested {} new messages from discord", &REQUESTS_PER_ITER);
 
         // If the retrieved messages are less than what expected (usually means we reached the beginning of the history)
         // or we reached a max amount of requests to make, stop after this iteration
-        if _messages.len() < REQUESTS_PER_ITER as usize || message_counter >= MAX_MESSAGE_COUNT {
+        if _messages.len() < REQUESTS_PER_ITER as usize {
             end_reached = true;
         }
 
         // Go through all fetched messages in this iteration
         for message in _messages {
-            // Gather all image attachments and add their urls to the list
-            message
-                .attachments
-                .iter()
-                .filter(|a| a.width.is_some())
-                .for_each(|a| link_list.push(a.url.clone()));
+            debug!("Processing message {}", message.id.0);
 
-            // Gather all embedded images and add their urls to the list
-            message
-                .embeds
-                .iter()
-                .filter_map(|e| e.image.clone())
-                .for_each(|i| link_list.push(i.url.clone()));
+            current_message_timestamp = message.timestamp.timestamp();
 
-            // If the currently handled message was the one provided as an argument id, stop there
-            if message.id.0 == id_arg {
+            // Checks before working on current message:
+            // If the message is significantly older compared to the last message (age threshold)
+            // or the the last messages didn't have any images (no images found threshold)
+            // then stop searching here
+            if last_message_timestamp - current_message_timestamp >= MESSAGE_RELATIVE_AGE_THRESH {
+                debug!("Stopped due to the current message being far older than tolerable");
+
                 end_reached = true;
                 break;
             }
+
+            if message_nothing_found_counter >= MESSAGE_NO_IMAGES_FOUND_THRESH {
+                debug!(
+                    "Stopped since there's been no images for the last {} messages now",
+                    message_nothing_found_counter
+                );
+
+                end_reached = true;
+                break;
+            }
+
+            // Gather all image attachments
+            let mut attachment_filter = message
+                .attachments
+                .iter()
+                .filter(|a| a.width.is_some())
+                .peekable();
+
+            // Gather all embedded images
+            let mut embed_filter = message
+                .embeds
+                .iter()
+                .filter_map(|e| e.image.clone())
+                .peekable();
+
+            // If there's either attachments or embeds containing at least one image,
+            // then add all of them to the link list and reset the "nothing found" counter to 0.
+            // Otherwise increment the counter
+            if attachment_filter.peek().is_some() || embed_filter.peek().is_some() {
+                message_nothing_found_counter = 0;
+
+                attachment_filter.for_each(|a| link_list.push(a.url.clone()));
+                embed_filter.for_each(|e| link_list.push(e.url.clone()));
+            } else {
+                message_nothing_found_counter += 1;
+
+                debug!("No images found");
+            }
+
+            // Checks after working on the current message
+            // If the currently handled message was the one provided as an argument for the end, stop there
+            if message.id.0 == to_msg_id_arg {
+                end_reached = true;
+                break;
+            }
+
+            // Update iteration stats
+            last_message_timestamp = current_message_timestamp;
+            last_message_id = message.id;
+            message_processed_counter += 1;
         }
     }
 
+    // Send results and the link list when images have been found
     if !link_list.is_empty() {
         let file_content = link_list.join("\n");
         let file_bytes = file_content.as_bytes();
@@ -78,12 +135,12 @@ pub fn fetch(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult 
             m.embed(|e| {
                 e.title("Image fetching results")
                 .description(format!(
-                    "Found **{}** images in **{}** messages! \n\
+                    "Found **{}** images in processed **{}** messages! \n\
                     The last message processed was [this one](https://discord.com/channels/{}/{}/{}/). \n\
                     \n\
                     You can download the attached txt file and \n\
                     import it into a download manager of your choice."
-                , link_list.len(), message_counter, msg.guild_id.unwrap(), msg.channel_id.0, last_message_id.0 ))
+                , link_list.len(), message_processed_counter, msg.guild_id.unwrap(), msg.channel_id.0, last_message_id.0 ))
             })
         });
 
@@ -91,6 +148,18 @@ pub fn fetch(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult 
         let _ = msg
             .channel_id
             .send_message(&ctx.http, |m| m.add_file(attachment));
+
+    // If not, inform the user that nothing's been found
+    } else {
+        let _ = msg.channel_id.send_message(&ctx.http, |m| {
+            m.embed(|e| {
+                e.title("Image fetching results")
+                .description(format!(
+                    "Processed **{}** messages but I haven't found any images :( \n\
+                    The last message processed was [this one](https://discord.com/channels/{}/{}/{}/)."
+                , message_processed_counter, msg.guild_id.unwrap(), msg.channel_id.0, last_message_id.0 ))
+            })
+        });
     }
 
     Ok(())

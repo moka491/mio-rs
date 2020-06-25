@@ -4,3 +4,8 @@
 
 - Know Your Meme search
 - translation command
+
+- fetch command
+  - make an embed when executing the command that tells you up to what point it will fetch (if given), and a time estimate
+  - make it intelligently fetch up to a larger block of images or messages, when no arguments are given
+  - make it support a start and end point to fetch older intervals
