@@ -14,17 +14,17 @@ use std::env;
 #[example("Berlin")]
 #[example("Sri Lanka")]
 #[example("New York")]
-pub fn weather(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult {
+pub async fn weather(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
     let token = match env::var("OPEN_WEATHER_MAP_TOKEN") {
         Ok(token) => token,
         Err(_) => {
-            return Err(CommandError(
+            return Err(CommandError::from(
                 "Couldn't load api key from config".to_string(),
             ))
         }
     };
 
-    let client = reqwest::blocking::Client::new();
+    let client = reqwest::Client::new();
 
     // Get coordinates for given location
     let search_arg = args.single::<String>()?;
@@ -32,8 +32,10 @@ pub fn weather(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResul
     let location: LocationQueryResponse = client
         .get("http://api.openweathermap.org/data/2.5/weather")
         .query(&[("appid", &token), ("q", &search_arg)])
-        .send()?
-        .json()?;
+        .send()
+        .await?
+        .json()
+        .await?;
 
     let weather: WeatherQueryResponse = client
         .get("http://api.openweathermap.org/data/2.5/onecall")
@@ -43,98 +45,106 @@ pub fn weather(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResul
             ("lon", &location.coord.lon.to_string()),
             ("units", &"metric".to_string()),
         ])
-        .send()?
-        .json()?;
+        .send()
+        .await?
+        .json()
+        .await?;
 
-    let _ = msg.channel_id.send_message(&ctx.http, |m| {
-        m.embed(|e| {
-            e.title(format!("Weather in {}", search_arg))
-                .thumbnail(get_weather_image_url(&weather.current.weather[0].icon))
-                .description(format!(
-                    "{} **{}** \n\
+    let _ = msg
+        .channel_id
+        .send_message(&ctx.http, |m| {
+            m.embed(|e| {
+                e.title(format!("Weather in {}", search_arg))
+                    .thumbnail(get_weather_image_url(&weather.current.weather[0].icon))
+                    .description(format!(
+                        "{} **{}** \n\
                     **Temp**: {:.0}°C (Feels like {:.0}°C)",
-                    get_weather_emoji(&weather.current.weather[0].icon),
-                    uppercase_first(&weather.current.weather[0].description),
-                    &weather.current.temp,
-                    &weather.current.feels_like
-                ))
-                .fields(vec![
-                    (
-                        "Weather",
-                        format!(
-                            "**Clouds**: {}% \n\
+                        get_weather_emoji(&weather.current.weather[0].icon),
+                        uppercase_first(&weather.current.weather[0].description),
+                        &weather.current.temp,
+                        &weather.current.feels_like
+                    ))
+                    .fields(vec![
+                        (
+                            "Weather",
+                            format!(
+                                "**Clouds**: {}% \n\
                             **Humidity**: {}% \n\
                             **Pressure**: {} hpa",
-                            &weather.current.clouds,
-                            &weather.current.humidity,
-                            &weather.current.pressure
+                                &weather.current.clouds,
+                                &weather.current.humidity,
+                                &weather.current.pressure
+                            ),
+                            true,
                         ),
-                        true,
-                    ),
-                    (
-                        "Wind",
-                        format!(
-                            "**Speed**: {}\n\
+                        (
+                            "Wind",
+                            format!(
+                                "**Speed**: {}\n\
                             **Direction**: {}° ({})",
-                            &weather.current.wind_speed,
-                            weather.current.wind_deg,
-                            format_direction(weather.current.wind_deg)
+                                &weather.current.wind_speed,
+                                weather.current.wind_deg,
+                                format_direction(weather.current.wind_deg)
+                            ),
+                            true,
                         ),
-                        true,
-                    ),
-                    (
-                        "Location",
-                        format!(
-                            "**Sunrise**: {}\n\
+                        (
+                            "Location",
+                            format!(
+                                "**Sunrise**: {}\n\
                             **Sunset**: {}\n\
                             **Local Time**: {}",
-                            format_timestamp(
-                                weather.current.sunrise,
-                                weather.timezone_offset,
-                                "%H:%M"
+                                format_timestamp(
+                                    weather.current.sunrise,
+                                    weather.timezone_offset,
+                                    "%H:%M"
+                                ),
+                                format_timestamp(
+                                    weather.current.sunset,
+                                    weather.timezone_offset,
+                                    "%H:%M"
+                                ),
+                                format_timestamp(
+                                    weather.current.dt,
+                                    weather.timezone_offset,
+                                    "%H:%M, %e %b %Y"
+                                ),
                             ),
-                            format_timestamp(
-                                weather.current.sunset,
-                                weather.timezone_offset,
-                                "%H:%M"
-                            ),
-                            format_timestamp(
-                                weather.current.dt,
-                                weather.timezone_offset,
-                                "%H:%M, %e %b %Y"
-                            ),
+                            false,
                         ),
-                        false,
-                    ),
-                ])
+                    ])
+            })
         })
-    });
+        .await;
 
-    let _ = msg.channel_id.send_message(&ctx.http, |m| {
-        m.embed(|e| {
-            e.title(format!("Forecast for {}", search_arg));
+    let _ = msg
+        .channel_id
+        .send_message(&ctx.http, |m| {
+            m.embed(|e| {
+                e.title(format!("Forecast for {}", search_arg));
 
-            for day_weather in &weather.daily {
-                e.field(
-                    format!(
-                        "{}",
-                        format_timestamp(day_weather.dt, weather.timezone_offset, "%e %b %Y")
-                    ),
-                    format!(
-                        "{} **{}** \n\
+                for day_weather in &weather.daily {
+                    e.field(
+                        format!(
+                            "{}",
+                            format_timestamp(day_weather.dt, weather.timezone_offset, "%e %b %Y")
+                        ),
+                        format!(
+                            "{} **{}** \n\
                         **Temp**: {:.0}°C\n\
                         **Humidity**: {}%",
-                        get_weather_emoji(&day_weather.weather[0].icon),
-                        uppercase_first(&day_weather.weather[0].description),
-                        &day_weather.temp.day,
-                        &day_weather.humidity
-                    ),
-                    true,
-                );
-            }
-            e
+                            get_weather_emoji(&day_weather.weather[0].icon),
+                            uppercase_first(&day_weather.weather[0].description),
+                            &day_weather.temp.day,
+                            &day_weather.humidity
+                        ),
+                        true,
+                    );
+                }
+                e
+            })
         })
-    });
+        .await;
 
     // let _ = msg.channel_id.send_message(&ctx.http, |m| {
     //     m.embed(|e| {

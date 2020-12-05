@@ -16,13 +16,15 @@ If you want more information about a specific command, just pass the command as 
 #[lacking_permissions = "Hide"]
 #[lacking_role = "Nothing"]
 #[wrong_channel = "Strike"]
-pub fn help(
-    context: &mut Context,
+pub async fn help(
+    ctx: &Context,
     msg: &Message,
     args: Args,
     help_options: &'static HelpOptions,
     groups: &[&'static CommandGroup],
     owners: HashSet<UserId>,
 ) -> CommandResult {
-    help_commands::with_embeds(context, msg, args, help_options, groups, owners)
+    help_commands::with_embeds(ctx, msg, args, help_options, groups, owners).await;
+
+    Ok(())
 }

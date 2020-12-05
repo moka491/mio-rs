@@ -6,17 +6,17 @@ use serenity::{
     utils::Colour,
 };
 
-use reqwest::{blocking::get, StatusCode};
+use reqwest::{get, StatusCode};
 
 #[command]
-pub fn lookup(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult {
+pub async fn lookup(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
     let platform_arg;
 
     // If the platform was given as the first argument, try to parse it, otherwise go back to linux
     let platform = match args.len() {
         1 => "linux",
         2 => {
-            platform_arg = args.single::<String>()?;
+            platform_arg = args.single::<String>().unwrap();
 
             if let "linux" | "windows" | "macos" = platform_arg.as_str() {
                 platform_arg.as_str()
@@ -24,11 +24,11 @@ pub fn lookup(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult
                 "linux"
             }
         }
-        _ => return Err(CommandError("Invalid number of arguments".to_string())),
+        _ => return Err(CommandError::from("Invalid number of arguments")),
     };
 
     // Retrieve the command search string argument
-    let search_string = args.single::<String>()?;
+    let search_string = args.single::<String>().unwrap();
 
     let tldr_urls = [
         format!(
@@ -43,42 +43,53 @@ pub fn lookup(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult
 
     // Try to find the search string on any url
     for url in tldr_urls.iter() {
-        let resp = get(url)?;
+        let resp = get(url).await.unwrap();
 
         match resp.status() {
             // If the file is not found on the current url, try the next one
             StatusCode::NOT_FOUND => (),
             // If it was found, parse it, send the embed and Ok() out
             StatusCode::OK => {
-                let resp_body = &resp.text()?;
+                let resp_body = &resp.text().await.unwrap();
 
                 let (title, description) = match get_tldr_content_from_markdown(resp_body) {
                     Some(tuple) => tuple,
-                    None => return Err(CommandError("Couldn't parse tldr markdown".to_string())),
+                    None => return Err(CommandError::from("Couldn't parse tldr markdown")),
                 };
 
-                let _ = msg.channel_id.send_message(&ctx.http, |m| {
-                    m.embed(|e| {
-                        e.colour(Colour::new(MAIN_COLOR))
-                            .title(title)
-                            .description(description)
+                let _ = msg
+                    .channel_id
+                    .send_message(&ctx.http, |m| {
+                        m.embed(|e| {
+                            e.colour(Colour::new(MAIN_COLOR))
+                                .title(title)
+                                .description(description)
+                        })
                     })
-                });
+                    .await;
 
                 return Ok(());
             }
             // On any other response, throw an error
-            s => return Err(CommandError(format!("Unexpected response status: {:?}", s))),
+            s => {
+                return Err(CommandError::from(format!(
+                    "Unexpected response status: {:?}",
+                    s
+                )))
+            }
         }
     }
 
     // Send a message if nothing was found until now
-    let _ = msg.channel_id.send_message(&ctx.http, |m| {
-        m.content(format!(
-            "Could not find a tl:dr page for '{}'",
-            search_string
-        ))
-    });
+    let _ = msg
+        .channel_id
+        .send_message(&ctx.http, |m| {
+            m.content(format!(
+                "Could not find a tl:dr page for '{}'",
+                search_string
+            ))
+        })
+        .await;
 
     Ok(())
 }

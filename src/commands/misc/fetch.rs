@@ -16,8 +16,7 @@ const MESSAGE_NO_IMAGES_FOUND_THRESH: u64 = 50;
 #[usage("<optional starting Message ID> <optional ending message ID>")]
 #[example("725681148134424596")]
 #[example("725681148134424596 725681148134424582")]
-
-pub fn fetch(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult {
+pub async fn fetch(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
     let mut link_list: Vec<String> = vec![];
 
     // Get optional start and end parameters ("to" message older than "from" message)
@@ -44,9 +43,12 @@ pub fn fetch(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult 
         let _ = msg.channel_id.broadcast_typing(&ctx.http);
 
         // Fetch REQUESTS_PER_ITER messages to process
-        let _messages: Vec<Message> = msg.channel_id.messages(&ctx.http, |retriever| {
-            retriever.before(last_message_id).limit(REQUESTS_PER_ITER)
-        })?;
+        let _messages: Vec<Message> = msg
+            .channel_id
+            .messages(&ctx.http, |retriever| {
+                retriever.before(last_message_id).limit(REQUESTS_PER_ITER)
+            })
+            .await?;
 
         debug!("Requested {} new messages from discord", &REQUESTS_PER_ITER);
 
@@ -155,12 +157,13 @@ pub fn fetch(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult 
                     import it into a download manager of your choice."
                 , link_list.len(), message_processed_counter, msg.guild_id.unwrap(), msg.channel_id.0, last_message_id.0 ))
             })
-        });
+        }).await;
 
         // Send actual attachment
         let _ = msg
             .channel_id
-            .send_message(&ctx.http, |m| m.add_file(attachment));
+            .send_message(&ctx.http, |m| m.add_file(attachment))
+            .await;
 
     // If not, inform the user that nothing's been found
     } else {
@@ -172,7 +175,7 @@ pub fn fetch(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult 
                     The last message processed was [this one](https://discord.com/channels/{}/{}/{}/)."
                 , message_processed_counter, msg.guild_id.unwrap(), msg.channel_id.0, last_message_id.0 ))
             })
-        });
+        }).await;
     }
 
     Ok(())

@@ -9,10 +9,11 @@ use serenity::{
 #[description("Let Mio say what you want")]
 #[example("@user is great!")]
 #[example("I like gween tea!")]
-pub fn say(ctx: &mut Context, msg: &Message, args: Args) -> CommandResult {
+pub async fn say(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
     let _ = msg
         .channel_id
-        .send_message(&ctx.http, |m| m.content(&args.rest()));
+        .send_message(&ctx.http, |m| m.content(&args.rest()))
+        .await;
     let _ = msg.delete(&ctx.http);
 
     Ok(())
@@ -23,10 +24,13 @@ pub fn say(ctx: &mut Context, msg: &Message, args: Args) -> CommandResult {
 #[description("Let Mio YELL IT OUT")]
 #[example("@user is great!")]
 #[example("I like gween tea!")]
-pub fn yell(ctx: &mut Context, msg: &Message, args: Args) -> CommandResult {
-    let _ = msg.channel_id.send_message(&ctx.http, |m| {
-        m.content(format!("**{}**", &args.rest().to_uppercase()))
-    });
+pub async fn yell(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
+    let _ = msg
+        .channel_id
+        .send_message(&ctx.http, |m| {
+            m.content(format!("**{}**", &args.rest().to_uppercase()))
+        })
+        .await;
     let _ = msg.delete(&ctx.http);
 
     Ok(())

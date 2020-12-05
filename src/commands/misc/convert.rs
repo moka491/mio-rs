@@ -185,20 +185,20 @@ lazy_static! {
 #[example("25km/h mph")]
 #[example("5mi mm")]
 #[example("27°C °F")]
-pub fn convert(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult {
+pub async fn convert(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
     if args.len() != 2 {
-        return Err(CommandError(
-            "Invalid number of arguments. You need to pass <number><unit> and <desired unit>, e.g. $convert 25km/s ft/s".to_string(),
-        ));
+        return Err(
+           CommandError::from("Invalid number of arguments. You need to pass <number><unit> and <desired unit>, e.g. $convert 25km/s ft/s"),
+        );
     }
 
-    let source_arg = args.single::<String>()?;
-    let dest_unit_arg = args.single::<String>()?;
+    let source_arg = args.single::<String>().unwrap();
+    let dest_unit_arg = args.single::<String>().unwrap();
 
     let source_number_str = source_arg.trim_end_matches(|c: char| !c.is_numeric());
     let source_unit_str = source_arg.trim_start_matches(source_number_str);
 
-    let source_number = source_number_str.parse::<f64>()?;
+    let source_number = source_number_str.parse::<f64>().unwrap();
 
     // 1. check if source and destination are valid units and match some variant
     // 2. check if source and destination variants are of the same type
@@ -206,12 +206,12 @@ pub fn convert(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResul
 
     let source_unit = match get_unit(source_unit_str) {
         Some(unit) => unit,
-        None => return Err(CommandError("Invalid source unit.".to_string())),
+        None => return Err(CommandError::from("Invalid source unit.")),
     };
 
     let dest_unit = match get_unit(dest_unit_arg.as_str()) {
         Some(unit) => unit,
-        None => return Err(CommandError("Invalid destination unit.".to_string())),
+        None => return Err(CommandError::from("Invalid destination unit.")),
     };
 
     // Check if both source and destination unit are of the same type (distance, velocity etc),
@@ -226,21 +226,20 @@ pub fn convert(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResul
         (Unit::Temperature(t1), Unit::Temperature(t2)) => {
             do_conversion(&TEMP_MATRIX, source_number, t1 as usize, t2 as usize)
         }
-        _ => {
-            return Err(CommandError(
-                "Can't convert between unrelated units.".to_string(),
-            ))
-        }
+        _ => return Err(CommandError::from("Can't convert between unrelated units.")),
     };
 
-    let _ = msg.channel_id.send_message(&ctx.http, |m| {
-        m.content(format!(
-            "{} -> {} = {:.2}{1}",
-            input = source_arg,
-            dest_unit = dest_unit_arg,
-            result = result
-        ))
-    });
+    let _ = msg
+        .channel_id
+        .send_message(&ctx.http, |m| {
+            m.content(format!(
+                "{} -> {} = {:.2}{1}",
+                input = source_arg,
+                dest_unit = dest_unit_arg,
+                result = result
+            ))
+        })
+        .await;
 
     Ok(())
 }

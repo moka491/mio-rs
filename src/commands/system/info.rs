@@ -12,20 +12,22 @@ use serenity::{
 const BOT_VERSION: &'static str = env!("CARGO_PKG_VERSION");
 
 #[command]
-pub fn info(ctx: &mut Context, msg: &Message, _: Args) -> CommandResult {
-    let app_info = &ctx.http.get_current_application_info()?;
-    let bot_user = &ctx.cache.read().user;
+pub async fn info(ctx: &Context, msg: &Message, _: Args) -> CommandResult {
+    let app_info = &ctx.http.get_current_application_info().await?;
+    let bot_id = &ctx.http.get_current_user().await?;
+
+    let bot_user = &ctx.cache.user(bot_id).await.unwrap();
     let bot_avatar = bot_user.avatar_url().unwrap_or(String::from(""));
 
     // Refresh system info
     {
-        let mut data = ctx.data.write();
+        let mut data = ctx.data.write().await;
         let sys = data.get_mut::<SysInfoContainer>().unwrap();
         sys.refresh_all();
     }
 
     // Uptime calculation
-    let data = ctx.data.read();
+    let data = ctx.data.read().await;
     let start_time = data.get::<StartTimeContainer>().unwrap();
     let bot_uptime = Utc::now().signed_duration_since(*start_time).num_seconds();
 
@@ -67,7 +69,8 @@ pub fn info(ctx: &mut Context, msg: &Message, _: Args) -> CommandResult {
                         ), true),
 
                     ("Dependencies", 
-                        "**serenity-rs**: v0.8.6\n\
+                        "**tokio**: v0.2\n\
+                        **serenity-rs**: v0.9.2\n\
                         **reqwest**: v0.10"
                         .to_string(), true),
 
@@ -89,7 +92,7 @@ pub fn info(ctx: &mut Context, msg: &Message, _: Args) -> CommandResult {
                     f.text("Made with ❤️ by Moka#0002~")
                 })
         })
-    });
+    }).await;
 
     Ok(())
 }

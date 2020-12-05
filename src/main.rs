@@ -4,10 +4,12 @@ mod core;
 use crate::core::consts::MAIN_COLOR;
 use crate::core::context::*;
 use chrono::Utc;
-use log::{error, info};
+use log::info;
 use serenity::{
-    framework::StandardFramework,
-    model::{event::ResumedEvent, gateway::Ready},
+    async_trait,
+    framework::standard::{macros::hook, CommandResult, StandardFramework},
+    http::Http,
+    model::{channel::Message, event::ResumedEvent, gateway::Ready},
     prelude::*,
     utils::Colour,
 };
@@ -15,85 +17,108 @@ use std::{collections::HashSet, env, sync::Arc};
 use sysinfo::{System, SystemExt};
 
 struct Handler;
+
+#[async_trait]
 impl EventHandler for Handler {
-    fn ready(&self, ctx: Context, ready: Ready) {
+    async fn ready(&self, ctx: Context, ready: Ready) {
         info!("Connected as {}", ready.user.name);
 
         use serenity::model::gateway::Activity;
         use serenity::model::user::OnlineStatus;
 
         ctx.set_presence(
-            Some(Activity::listening("~help and mio help")),
+            Some(Activity::listening("$help, mio help")),
             OnlineStatus::Online,
-        );
+        )
+        .await
     }
 
-    fn resume(&self, _: Context, _: ResumedEvent) {
+    async fn resume(&self, _: Context, _: ResumedEvent) {
         info!("Resumed");
     }
 }
 
-fn main() {
-    // This will load the environment variables located at `./.env`, relative to
-    // the CWD. See `./.env.example` for an example on how to structure this.
+#[tokio::main]
+async fn main() {
     kankyo::load().expect("Failed to load .env file");
 
-    // Initialize the logger to use environment variables.
-    //
-    // In this case, a good default is setting the environment variable
-    // `RUST_LOG` to debug`.
     env_logger::init();
 
     let token = env::var("DISCORD_TOKEN").expect("Expected a token in the environment");
 
-    let mut client = Client::new(&token, Handler).expect("Err creating client");
+    let http = Http::new_with_token(&token);
+
+    let (owners, bot_id) = match http.get_current_application_info().await {
+        Ok(info) => {
+            let mut owners = HashSet::new();
+
+            if let Some(team) = info.team {
+                owners.insert(team.owner_user_id);
+            } else {
+                owners.insert(info.owner.id);
+            }
+
+            match http.get_current_user().await {
+                Ok(bot_id) => (owners, bot_id.id),
+                Err(why) => panic!("Could not access the bot id: {:?}", why),
+            }
+        }
+        Err(why) => panic!("Could not access application info: {:?}", why),
+    };
+
+    let framework = StandardFramework::new()
+        .configure(|c| {
+            c.on_mention(Some(bot_id))
+                .prefixes(vec!["$", "mio "])
+                .owners(owners)
+        })
+        .after(after)
+        .group(&commands::tldr::TLDR_GROUP)
+        .group(&commands::misc::MISC_GROUP)
+        .group(&commands::system::SYSTEM_GROUP)
+        .help(&commands::help::HELP);
+
+    let mut client = Client::builder(&token)
+        .event_handler(Handler)
+        .framework(framework)
+        .await
+        .expect("Err creating client");
 
     {
-        let mut data = client.data.write();
+        let mut data = client.data.write().await;
         data.insert::<ShardManagerContainer>(Arc::clone(&client.shard_manager));
         data.insert::<StartTimeContainer>(Utc::now());
         data.insert::<SysInfoContainer>(System::new_all());
     }
 
-    let owners = match client.cache_and_http.http.get_current_application_info() {
-        Ok(info) => {
-            let mut set = HashSet::new();
-            set.insert(info.owner.id);
-            set
+    if let Err(why) = client.start().await {
+        println!("Client error: {:?}", why);
+    }
+}
+
+#[hook]
+async fn after(ctx: &Context, msg: &Message, command_name: &str, command_result: CommandResult) {
+    match command_result {
+        Ok(()) => println!(
+            "Command '{}' processed message: {}",
+            command_name, msg.content
+        ),
+        Err(error) => {
+            println!(
+                "Command '{}' returned error. Message: {}, Error: {:?}",
+                command_name, msg.content, error
+            );
+
+            let _ = msg
+                .channel_id
+                .send_message(&ctx.http, |m| {
+                    m.embed(|e| {
+                        e.colour(Colour::new(MAIN_COLOR))
+                            .title("An error occured!")
+                            .description(error)
+                    })
+                })
+                .await;
         }
-        Err(why) => panic!("Couldn't get application info: {:?}", why),
-    };
-
-    client.with_framework(
-        StandardFramework::new()
-            .configure(|c| c.owners(owners).prefixes(vec!["~", "mio "]))
-            .group(&commands::hololive::HOLOLIVE_GROUP)
-            .group(&commands::tldr::TLDR_GROUP)
-            .group(&commands::misc::MISC_GROUP)
-            .group(&commands::system::SYSTEM_GROUP)
-            .help(&commands::help::HELP)
-            .after(|ctx, msg, command_name, error| match error {
-                Ok(()) => println!(
-                    "Command '{}' processed message: {}",
-                    command_name, msg.content
-                ),
-                Err(error) => {
-                    println!(
-                        "Command '{}' returned error. Message: {}, Error: {:?}",
-                        command_name, msg.content, error
-                    );
-                    let _ = msg.channel_id.send_message(&ctx.http, |m| {
-                        m.embed(|e| {
-                            e.colour(Colour::new(MAIN_COLOR))
-                                .title("An error occured!")
-                                .description(format!("{}", error.0))
-                        })
-                    });
-                }
-            }),
-    );
-
-    if let Err(why) = client.start() {
-        error!("Client error: {:?}", why);
     }
 }

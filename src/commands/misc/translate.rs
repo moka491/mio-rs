@@ -13,7 +13,7 @@ use serenity::{
 )]
 #[example("en こんにちは！")]
 #[example("de en Guten Abend!")]
-pub fn translate(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult {
+pub async fn translate(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
     let first_arg = args.single::<String>()?;
     let second_arg = args.single::<String>()?;
 
@@ -21,8 +21,8 @@ pub fn translate(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandRes
     let mut target_lang = match validate_unit(&first_arg) {
         Some(lang) => lang,
         None => {
-            return Err(CommandError(
-                "The first argument must be a valid two letter language code!".to_string(),
+            return Err(CommandError::from(
+                "The first argument must be a valid two letter language code!",
             ))
         }
     };
@@ -46,13 +46,13 @@ pub fn translate(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandRes
 
     // If nothing is left to translate, a text is missing
     if args.is_empty() {
-        return Err(CommandError(
+        return Err(CommandError::from(
             "There needs to be a text to be translated!".to_string(),
         ));
     }
 
     let text = args.rest();
-    let client = reqwest::blocking::Client::new();
+    let client = reqwest::Client::new();
 
     // Send the query and parse it as text response
     let response = client
@@ -63,8 +63,10 @@ pub fn translate(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandRes
         )
             .as_str(),
         )
-        .send()?
-        .text()?;
+        .send()
+        .await?
+        .text()
+        .await?;
 
     // Get loosely typed json format
     let json: Value = serde_json::from_str(&response)?;
@@ -82,16 +84,19 @@ pub fn translate(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandRes
     source_lang = json[2].as_str().unwrap();
 
     // Send message with translation
-    let _ = msg.channel_id.send_message(&ctx.http, |m| {
-        m.embed(|e| {
-            e.title(format!(
-                "Translation from {} -> {}",
-                source_lang.to_ascii_uppercase(),
-                target_lang.to_ascii_uppercase()
-            ))
-            .description(translated_sentences)
+    let _ = msg
+        .channel_id
+        .send_message(&ctx.http, |m| {
+            m.embed(|e| {
+                e.title(format!(
+                    "Translation from {} -> {}",
+                    source_lang.to_ascii_uppercase(),
+                    target_lang.to_ascii_uppercase()
+                ))
+                .description(translated_sentences)
+            })
         })
-    });
+        .await;
 
     Ok(())
 }
