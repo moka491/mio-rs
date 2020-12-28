@@ -15,6 +15,7 @@ lazy_static! {
 }
 
 #[command]
+#[aliases("nh")]
 #[description(
     "Looks up one or multiple nhentai IDs and returns information about the associated doujinshi."
 )]
