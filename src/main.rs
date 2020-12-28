@@ -76,6 +76,7 @@ async fn main() {
         .group(&commands::tldr::TLDR_GROUP)
         .group(&commands::misc::MISC_GROUP)
         .group(&commands::system::SYSTEM_GROUP)
+        .group(&commands::nsfw::NSFW_GROUP)
         .help(&commands::help::HELP);
 
     let mut client = Client::builder(&token)
