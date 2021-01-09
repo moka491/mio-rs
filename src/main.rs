@@ -115,8 +115,12 @@ async fn after(ctx: &Context, msg: &Message, command_name: &str, command_result:
                 .send_message(&ctx.http, |m| {
                     m.embed(|e| {
                         e.colour(Colour::new(MAIN_COLOR))
-                            .title("An error occured!")
-                            .description(error)
+                            .title("Oh noes!")
+                            .description(
+                                "Unfortunately, an error has occured while processing this command. \n\
+                                Please report this incident to the bot owner to get it fixed.
+                            ")
+                            .field("Error", error, false)
                     })
                 })
                 .await;
