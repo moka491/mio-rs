@@ -3,6 +3,7 @@ use lazy_static::lazy_static;
 use crate::core::checks::ISNSFW_CHECK;
 use regex::{Captures, Regex};
 use serde::Deserialize;
+use serde_aux::field_attributes::deserialize_number_from_string;
 use serenity::{
     client::Context,
     framework::standard::{macros::command, Args, CommandResult},
@@ -137,6 +138,7 @@ fn format_tag_items(tags: &Vec<&GalleryTagInfo>) -> String {
 
 #[derive(Deserialize, Debug)]
 struct GalleryResponse {
+    #[serde(deserialize_with = "deserialize_number_from_string")]
     id: i32,
     media_id: String,
     title: GalleryTitle,
