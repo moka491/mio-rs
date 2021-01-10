@@ -130,10 +130,10 @@ fn filter_tags_by_type(tags: &Vec<GalleryTagInfo>, tag_type: TagType) -> Vec<&Ga
 }
 
 fn format_tag_items(tags: &Vec<&GalleryTagInfo>) -> String {
-    tags.iter().fold("".to_string(), |mut tag_string, tag| {
-        tag_string.push_str(format!("`{}` ", tag.name).as_str());
-        tag_string
-    })
+    tags.iter()
+        .map(|tag| format!("`{}`", tag.name))
+        .collect::<Vec<String>>()
+        .join(", ")
 }
 
 #[derive(Deserialize, Debug)]
