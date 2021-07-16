@@ -40,9 +40,8 @@ pub async fn nhentai(ctx: &Context, msg: &Message, args: Args) -> CommandResult 
             .channel_id
             .send_message(&ctx.http, |m| {
                 let msg = m.embed(|e| {
-                    e.colour(MAIN_COLOR)
+                    e.color(0xEC2854)
                         .title(data.title.pretty)
-                        .color(0xEC2854)
                         .url(format!("https://nhentai.net/g/{}", data.id))
                         .thumbnail(get_cover_url(&data.media_id, &data.images.cover.t))
                         .fields(vec![

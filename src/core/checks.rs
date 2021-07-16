@@ -19,3 +19,20 @@ async fn nsfw_check(
         )),
     }
 }
+
+#[check]
+#[name = "IsAdmin"]
+async fn is_admin(
+    ctx: &mut Context,
+    msg: &Message,
+    _: &mut Args,
+    _: &CommandOptions,
+) -> Result<(), Reason> {
+    if let Some(member) = msg.member(&mut ctx.cache).await {
+        if let Ok(permissions) = member.permissions(&ctx.cache) {
+            return permissions.administrator().into();
+        }
+    }
+
+    false.into()
+}

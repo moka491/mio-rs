@@ -1,3 +1,4 @@
+use crate::core::consts::MAIN_COLOR;
 use log::debug;
 use serenity::{
     framework::standard::{macros::command, Args, CommandResult},
@@ -6,8 +7,6 @@ use serenity::{
     prelude::Context,
 };
 use std::borrow::Cow;
-
-use crate::core::consts::MAIN_COLOR;
 
 const REQUESTS_PER_ITER: u64 = 100;
 const MESSAGE_RELATIVE_AGE_THRESH: i64 = 3600 * 18;
@@ -153,7 +152,7 @@ pub async fn fetch(ctx: &Context, msg: &Message, mut args: Args) -> CommandResul
                 e.colour(MAIN_COLOR)
                 .title("Image fetching results")
                 .description(format!(
-                    "Found **{}** images in processed **{}** messages! \n\
+                    "Found **{}** images in **{}** processed messages! \n\
                     The last message processed was [this one](https://discord.com/channels/{}/{}/{}/). \n\
                     \n\
                     You can download the attached txt file and \n\
