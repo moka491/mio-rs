@@ -16,6 +16,27 @@ dependencies = [
 ]
 
 [[package]]
+name = "aoyama-bot"
+version = "0.1.0"
+dependencies = [
+ "chrono",
+ "env_logger",
+ "kankyo",
+ "lazy_static",
+ "log",
+ "regex",
+ "reqwest",
+ "rustc_version_runtime",
+ "serde",
+ "serde-aux",
+ "serde_derive",
+ "serde_json",
+ "serenity",
+ "sysinfo",
+ "tokio",
+]
+
+[[package]]
 name = "async-trait"
 version = "0.1.42"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -693,27 +714,6 @@ dependencies = [
  "net2",
  "slab",
  "winapi 0.2.8",
-]
-
-[[package]]
-name = "mio-rs"
-version = "0.1.0"
-dependencies = [
- "chrono",
- "env_logger",
- "kankyo",
- "lazy_static",
- "log",
- "regex",
- "reqwest",
- "rustc_version_runtime",
- "serde",
- "serde-aux",
- "serde_derive",
- "serde_json",
- "serenity",
- "sysinfo",
- "tokio",
 ]
 
 [[package]]

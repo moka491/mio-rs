@@ -21,6 +21,6 @@ RUN cargo build --release
 
 ### Stage 3: Runtime image
 FROM gcr.io/distroless/cc
-COPY --from=build-env /app/target/release/mio-rs /
+COPY --from=build-env /app/target/release/aoyama-bot /
 COPY .env /
-CMD ["./mio-rs"]
+CMD ["./aoyama-bot"]

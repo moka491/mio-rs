@@ -26,11 +26,8 @@ impl EventHandler for Handler {
         use serenity::model::gateway::Activity;
         use serenity::model::user::OnlineStatus;
 
-        ctx.set_presence(
-            Some(Activity::listening("$help, mio help")),
-            OnlineStatus::Online,
-        )
-        .await
+        ctx.set_presence(Some(Activity::listening("~help")), OnlineStatus::Online)
+            .await
     }
 
     async fn resume(&self, _: Context, _: ResumedEvent) {
@@ -69,7 +66,7 @@ async fn main() {
     let framework = StandardFramework::new()
         .configure(|c| {
             c.on_mention(Some(bot_id))
-                .prefixes(vec!["$", "mio "])
+                .prefixes(vec!["a!"])
                 .owners(owners)
         })
         .after(after)

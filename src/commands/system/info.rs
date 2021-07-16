@@ -9,6 +9,7 @@ use serenity::{
     model::channel::Message,
     prelude::Context,
 };
+
 const BOT_VERSION: &'static str = env!("CARGO_PKG_VERSION");
 
 #[command]
@@ -18,6 +19,10 @@ pub async fn info(ctx: &Context, msg: &Message, _: Args) -> CommandResult {
 
     let bot_user = &ctx.cache.user(bot_id).await.unwrap();
     let bot_avatar = bot_user.avatar_url().unwrap_or(String::from(""));
+    let bot_owner = format!(
+        "{}#{:04}",
+        app_info.owner.name, app_info.owner.discriminator
+    );
 
     // Refresh system info
     {
@@ -46,10 +51,11 @@ pub async fn info(ctx: &Context, msg: &Message, _: Args) -> CommandResult {
 
     let _ = msg.channel_id.send_message(&ctx.http, |m| {
         m.embed(|e| {
-            e.title("About Ookami Mio")
+            e.title("About me, Aoyama-san")
                 .description(
-                    "**こんばんみぉーん**！\n\
-                    I'm Ookami Mio, your fellow helper bot written in [Rust](https://www.rust-lang.org/) using [serenity](https://github.com/serenity-rs/serenity).",
+                    "**Konnichiha!\n\
+                    I'm Aoyama \"Blue Mountain\", a fellow writer in town!\n\
+                    Owner-san wrote me in [Rust](https://www.rust-lang.org/) using [serenity](https://github.com/serenity-rs/serenity).",
                 )
                 .thumbnail(bot_avatar)
                 .fields(vec![
@@ -57,12 +63,12 @@ pub async fn info(ctx: &Context, msg: &Message, _: Args) -> CommandResult {
                         format!("
                             **Version**: v{}\n\
                             **Compiled with**: rustc v{}\n\
-                            **Owner**: {}#{:04}\n\
+                            **Owner**: {}\n\
                             **Mem usage**: {:.2} MB\n\
                             **Uptime**: {}",
                             BOT_VERSION,
                             version(),
-                            app_info.owner.name, app_info.owner.discriminator,
+                            bot_owner,
                             bot_process.memory() / 1024,
                             get_formatted_uptime(bot_uptime as u64),
 
@@ -89,7 +95,7 @@ pub async fn info(ctx: &Context, msg: &Message, _: Args) -> CommandResult {
                         ), false),
                 ])
                 .footer(|f| {
-                    f.text("Made with ❤️ by Moka#0002~")
+                    f.text(format!("Made with ❤️ by {}~", bot_owner))
                 })
         })
     }).await;

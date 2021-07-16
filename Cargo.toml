@@ -1,5 +1,5 @@
 [package]
-name = "mio-rs"
+name = "aoyama-bot"
 version = "0.1.0"
 authors = ["Moka"]
 edition = "2018"
