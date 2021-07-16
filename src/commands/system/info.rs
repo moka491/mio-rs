@@ -38,16 +38,17 @@ pub async fn info(ctx: &Context, msg: &Message, _: Args) -> CommandResult {
 
     // System info
     let sys = data.get::<SysInfoContainer>().unwrap();
-    let cpu = sys.get_global_processor_info();
-    let cpu_name = cpu.get_name().trim_end_matches("Total CPU").trim_end();
-    let cpu_count = sys.get_processors().len();
+    let cpu = sys.global_processor_info();
+    let cpu_name = cpu.name().trim_end_matches("Total CPU").trim_end();
+
+    let cpu_count = sys.processors().len();
     let avg_cpu_frequency = sys
-        .get_processors()
+        .processors()
         .iter()
-        .fold(0, |freq, p| freq + p.get_frequency() / cpu_count as u64);
+        .fold(0, |freq, p| freq + p.frequency() / cpu_count as u64);
 
     let bot_pid = sysinfo::get_current_pid().unwrap();
-    let bot_process = sys.get_process(bot_pid).unwrap();
+    let bot_process = sys.process(bot_pid).unwrap();
 
     let _ = msg.channel_id.send_message(&ctx.http, |m| {
         m.embed(|e| {
@@ -87,11 +88,11 @@ pub async fn info(ctx: &Context, msg: &Message, _: Args) -> CommandResult {
                             **RAM usage**: {} / {} MB\n\
                             **Swap usage**: {} / {} MB\n\
                             **System uptime**: {}",
-                            cpu.get_brand(), cpu_name, cpu_count, avg_cpu_frequency,
-                            cpu.get_cpu_usage(),
-                            sys.get_used_memory() / 1024, sys.get_total_memory() / 1024,
-                            sys.get_used_swap() / 1024, sys.get_total_swap() / 1024,
-                            get_formatted_uptime(sys.get_uptime())
+                            cpu.brand(), cpu_name, cpu_count, avg_cpu_frequency,
+                            cpu.cpu_usage(),
+                            sys.used_memory() / 1024, sys.total_memory() / 1024,
+                            sys.used_swap() / 1024, sys.total_swap() / 1024,
+                            get_formatted_uptime(sys.uptime())
                         ), false),
                 ])
                 .footer(|f| {

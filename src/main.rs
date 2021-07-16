@@ -37,12 +37,10 @@ impl EventHandler for Handler {
 
 #[tokio::main]
 async fn main() {
-    kankyo::load().expect("Failed to load .env file");
-
+    kankyo::load(false).expect("Failed to load .env file");
     env_logger::init();
 
     let token = env::var("DISCORD_TOKEN").expect("Expected a token in the environment");
-
     let http = Http::new_with_token(&token);
 
     let (owners, bot_id) = match http.get_current_application_info().await {
@@ -66,7 +64,7 @@ async fn main() {
     let framework = StandardFramework::new()
         .configure(|c| {
             c.on_mention(Some(bot_id))
-                .prefixes(vec!["a!"])
+                .prefixes(vec!["~"])
                 .owners(owners)
         })
         .after(after)
@@ -107,8 +105,7 @@ async fn after(ctx: &Context, msg: &Message, command_name: &str, command_result:
                 command_name, msg.content, error
             );
 
-            let _ = msg
-                .channel_id
+            let _ = msg.channel_id
                 .send_message(&ctx.http, |m| {
                     m.embed(|e| {
                         e.colour(Colour::new(MAIN_COLOR))
