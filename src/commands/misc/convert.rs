@@ -232,12 +232,7 @@ pub async fn convert(ctx: &Context, msg: &Message, mut args: Args) -> CommandRes
     let _ = msg
         .channel_id
         .send_message(&ctx.http, |m| {
-            m.content(format!(
-                "{} -> {} = {:.2}{1}",
-                input = source_arg,
-                dest_unit = dest_unit_arg,
-                result = result
-            ))
+            m.content(format!("{} = {:.2}{}", source_arg, result, dest_unit_arg,))
         })
         .await;
 

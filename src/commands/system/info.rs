@@ -2,7 +2,11 @@ extern crate rustc_version_runtime;
 use rustc_version_runtime::version;
 use sysinfo::{ProcessExt, ProcessorExt, SystemExt};
 
-use crate::core::context::{StartTimeContainer, SysInfoContainer};
+use crate::core::{
+    consts::MAIN_COLOR,
+    context::{StartTimeContainer, SysInfoContainer},
+};
+
 use chrono::Utc;
 use serenity::{
     framework::standard::{macros::command, Args, CommandResult},
@@ -52,7 +56,8 @@ pub async fn info(ctx: &Context, msg: &Message, _: Args) -> CommandResult {
 
     let _ = msg.channel_id.send_message(&ctx.http, |m| {
         m.embed(|e| {
-            e.title("About me, Aoyama-san")
+            e.colour(MAIN_COLOR)
+                .title("About me, Aoyama-san")
                 .description(
                     "**Konnichiha!**\n\
                     I'm Aoyama \"Blue Mountain\", a fellow writer in town!\n\

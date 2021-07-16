@@ -7,6 +7,8 @@ use serenity::{
 };
 use std::env;
 
+use crate::core::consts::MAIN_COLOR;
+
 // static MAP_ZOOM: i32 = 5;
 
 #[command]
@@ -54,7 +56,8 @@ pub async fn weather(ctx: &Context, msg: &Message, mut args: Args) -> CommandRes
         .channel_id
         .send_message(&ctx.http, |m| {
             m.embed(|e| {
-                e.title(format!("Weather in {}", search_arg))
+                e.colour(MAIN_COLOR)
+                    .title(format!("Weather in {}", search_arg))
                     .thumbnail(get_weather_image_url(&weather.current.weather[0].icon))
                     .description(format!(
                         "{} **{}** \n\
@@ -121,7 +124,8 @@ pub async fn weather(ctx: &Context, msg: &Message, mut args: Args) -> CommandRes
         .channel_id
         .send_message(&ctx.http, |m| {
             m.embed(|e| {
-                e.title(format!("Forecast for {}", search_arg));
+                e.colour(MAIN_COLOR)
+                    .title(format!("Forecast for {}", search_arg));
 
                 for day_weather in &weather.daily[1..] {
                     e.field(

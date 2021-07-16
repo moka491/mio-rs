@@ -11,7 +11,6 @@ use serenity::{
     http::Http,
     model::{channel::Message, event::ResumedEvent, gateway::Ready},
     prelude::*,
-    utils::Colour,
 };
 use std::{collections::HashSet, env, sync::Arc};
 use sysinfo::{System, SystemExt};
@@ -108,7 +107,7 @@ async fn after(ctx: &Context, msg: &Message, command_name: &str, command_result:
             let _ = msg.channel_id
                 .send_message(&ctx.http, |m| {
                     m.embed(|e| {
-                        e.colour(Colour::new(MAIN_COLOR))
+                        e.colour(MAIN_COLOR)
                             .title("Oh noes!")
                             .description(
                                 "Unfortunately, an error has occured while processing this command. \n\

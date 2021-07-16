@@ -7,6 +7,8 @@ use serenity::{
 };
 use std::borrow::Cow;
 
+use crate::core::consts::MAIN_COLOR;
+
 const REQUESTS_PER_ITER: u64 = 100;
 const MESSAGE_RELATIVE_AGE_THRESH: i64 = 3600 * 18;
 const MESSAGE_NO_IMAGES_FOUND_THRESH: u64 = 50;
@@ -148,7 +150,8 @@ pub async fn fetch(ctx: &Context, msg: &Message, mut args: Args) -> CommandResul
         // Send result info message
         let _ = msg.channel_id.send_message(&ctx.http, |m| {
             m.embed(|e| {
-                e.title("Image fetching results")
+                e.colour(MAIN_COLOR)
+                .title("Image fetching results")
                 .description(format!(
                     "Found **{}** images in processed **{}** messages! \n\
                     The last message processed was [this one](https://discord.com/channels/{}/{}/{}/). \n\
@@ -169,7 +172,8 @@ pub async fn fetch(ctx: &Context, msg: &Message, mut args: Args) -> CommandResul
     } else {
         let _ = msg.channel_id.send_message(&ctx.http, |m| {
             m.embed(|e| {
-                e.title("Image fetching results")
+                e.colour(MAIN_COLOR)
+                .title("Image fetching results")
                 .description(format!(
                     "Processed **{}** messages but I haven't found any images :( \n\
                     The last message processed was [this one](https://discord.com/channels/{}/{}/{}/)."

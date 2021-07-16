@@ -5,6 +5,8 @@ use serenity::{
     prelude::Context,
 };
 
+use crate::core::consts::MAIN_COLOR;
+
 #[command]
 #[description(
     "Translates a given text into the target language given as the first argument. \
@@ -88,12 +90,13 @@ pub async fn translate(ctx: &Context, msg: &Message, mut args: Args) -> CommandR
         .channel_id
         .send_message(&ctx.http, |m| {
             m.embed(|e| {
-                e.title(format!(
-                    "Translation from {} -> {}",
-                    source_lang.to_ascii_uppercase(),
-                    target_lang.to_ascii_uppercase()
-                ))
-                .description(translated_sentences)
+                e.colour(MAIN_COLOR)
+                    .title(format!(
+                        "Translation from {} -> {}",
+                        source_lang.to_ascii_uppercase(),
+                        target_lang.to_ascii_uppercase()
+                    ))
+                    .description(translated_sentences)
             })
         })
         .await;

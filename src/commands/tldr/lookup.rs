@@ -3,7 +3,6 @@ use serenity::{
     framework::standard::{macros::command, Args, CommandError, CommandResult},
     model::channel::Message,
     prelude::Context,
-    utils::Colour,
 };
 
 use reqwest::{get, StatusCode};
@@ -60,11 +59,7 @@ pub async fn lookup(ctx: &Context, msg: &Message, mut args: Args) -> CommandResu
                 let _ = msg
                     .channel_id
                     .send_message(&ctx.http, |m| {
-                        m.embed(|e| {
-                            e.colour(Colour::new(MAIN_COLOR))
-                                .title(title)
-                                .description(description)
-                        })
+                        m.embed(|e| e.colour(MAIN_COLOR).title(title).description(description))
                     })
                     .await;
 
