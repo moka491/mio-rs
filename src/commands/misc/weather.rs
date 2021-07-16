@@ -58,7 +58,7 @@ pub async fn weather(ctx: &Context, msg: &Message, mut args: Args) -> CommandRes
                     .thumbnail(get_weather_image_url(&weather.current.weather[0].icon))
                     .description(format!(
                         "{} **{}** \n\
-                    **Temp**: {:.0}°C (Feels like {:.0}°C)",
+                        **Temp**: {:.0}°C (Feels like {:.0}°C)",
                         get_weather_emoji(&weather.current.weather[0].icon),
                         uppercase_first(&weather.current.weather[0].description),
                         &weather.current.temp,
@@ -69,8 +69,8 @@ pub async fn weather(ctx: &Context, msg: &Message, mut args: Args) -> CommandRes
                             "Weather",
                             format!(
                                 "**Clouds**: {}% \n\
-                            **Humidity**: {}% \n\
-                            **Pressure**: {} hpa",
+                                **Humidity**: {}% \n\
+                                **Pressure**: {} hpa",
                                 &weather.current.clouds,
                                 &weather.current.humidity,
                                 &weather.current.pressure
@@ -81,7 +81,7 @@ pub async fn weather(ctx: &Context, msg: &Message, mut args: Args) -> CommandRes
                             "Wind",
                             format!(
                                 "**Speed**: {}\n\
-                            **Direction**: {}° ({})",
+                                **Direction**: {}° ({})",
                                 &weather.current.wind_speed,
                                 weather.current.wind_deg,
                                 format_direction(weather.current.wind_deg)
@@ -92,8 +92,8 @@ pub async fn weather(ctx: &Context, msg: &Message, mut args: Args) -> CommandRes
                             "Location",
                             format!(
                                 "**Sunrise**: {}\n\
-                            **Sunset**: {}\n\
-                            **Local Time**: {}",
+                                **Sunset**: {}\n\
+                                **Local Time**: {}",
                                 format_timestamp(
                                     weather.current.sunrise,
                                     weather.timezone_offset,
@@ -123,7 +123,7 @@ pub async fn weather(ctx: &Context, msg: &Message, mut args: Args) -> CommandRes
             m.embed(|e| {
                 e.title(format!("Forecast for {}", search_arg));
 
-                for day_weather in &weather.daily {
+                for day_weather in &weather.daily[1..] {
                     e.field(
                         format!(
                             "{}",

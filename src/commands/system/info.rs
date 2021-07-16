@@ -54,9 +54,9 @@ pub async fn info(ctx: &Context, msg: &Message, _: Args) -> CommandResult {
         m.embed(|e| {
             e.title("About me, Aoyama-san")
                 .description(
-                    "**Konnichiha!\n\
+                    "**Konnichiha!**\n\
                     I'm Aoyama \"Blue Mountain\", a fellow writer in town!\n\
-                    Owner-san wrote me in [Rust](https://www.rust-lang.org/) using [serenity](https://github.com/serenity-rs/serenity).",
+                    Moka-san wrote me in [Rust](https://www.rust-lang.org/) using [serenity](https://github.com/serenity-rs/serenity).",
                 )
                 .thumbnail(bot_avatar)
                 .fields(vec![
@@ -73,14 +73,7 @@ pub async fn info(ctx: &Context, msg: &Message, _: Args) -> CommandResult {
                             bot_process.memory() / 1024,
                             get_formatted_uptime(bot_uptime as u64),
 
-                        ), true),
-
-                    ("Dependencies", 
-                        "**tokio**: v0.2\n\
-                        **serenity-rs**: v0.9.2\n\
-                        **reqwest**: v0.10"
-                        .to_string(), true),
-
+                        ), false),
                     ("System Info", 
                         format!(
                             "**CPU**: {} {}, {}x {:.2} MHz\n\
@@ -96,7 +89,7 @@ pub async fn info(ctx: &Context, msg: &Message, _: Args) -> CommandResult {
                         ), false),
                 ])
                 .footer(|f| {
-                    f.text(format!("Made with ❤️ by {}~", bot_owner))
+                    f.text(format!("Made with ❤️ by {}", bot_owner))
                 })
         })
     }).await;
